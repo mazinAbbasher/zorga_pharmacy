@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Categories | PharmaLink{% endblock %}
+{% block header_title %}Category Management{% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-in fade-in duration-500">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Drug Classifications</h2>
+            <p class="text-slate-500 font-medium">Organize your inventory by pharmaceutical categories.</p>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button hx-get="{% url 'drugs:category_create' %}" hx-target="#modal-content"
+                class="inline-flex items-center px-6 py-3 bg-accent-600 hover:bg-accent-700 text-white text-sm font-bold rounded-[1.25rem] transition-all shadow-lg shadow-accent-600/20 active:scale-95">
+                <i data-lucide="plus-circle" class="w-5 h-5 mr-2"></i>
+                Create Category
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left">
+                <thead>
+                    <tr
+                        class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        <th class="px-8 py-6">Category Name</th>
+                        <th class="px-6 py-6">Description</th>
+                        <th class="px-6 py-6 text-center">Drugs Count</th>
+                        <th class="px-8 py-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="category-table-body" class="divide-y divide-slate-100">
+                    {% include 'drugs/partials/category_list_rows.html' %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+<div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+    <div>
+        <h3 class="text-xl font-black text-slate-800">{{ title }}</h3>
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Supplier Profile Configuration
+        </p>
+    </div>
+    <button onclick="closeModal()"
+        class="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:bg-white hover:text-slate-900 transition-all hover:shadow-sm">
+        <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+</div>
+
+<form
+    hx-post="{% if supplier %}{% url 'suppliers:update' supplier.id %}{% else %}{% url 'suppliers:create' %}{% endif %}"
+    hx-target="#modal-content" class="p-10 space-y-6">
+    {% csrf_token %}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="md:col-span-2 space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Establishment
+                name</label>
+            {{ form.name }}
+            {% if form.name.errors %}<p class="text-xs font-bold text-red-500 mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Phone</label>
+            {{ form.phone_number }}
+            {% if form.phone_number.errors %}<p class="text-xs font-bold text-red-500 mt-1">{{ form.phone_number.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+            {{ form.email }}
+            {% if form.email.errors %}<p class="text-xs font-bold text-red-500 mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="md:col-span-2 space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Physical Address</label>
+            {{ form.address }}
+            {% if form.address.errors %}<p class="text-xs font-bold text-red-500 mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="md:col-span-2 space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Opening Payable Balance
+                (SDG)</label>
+            {{ form.balance }}
+            {% if form.balance.errors %}<p class="text-xs font-bold text-red-500 mt-1">{{ form.balance.errors.0 }}</p>{% endif %}
+        </div>
+    </div>
+
+    <div class="pt-6 flex space-x-4">
+        <button type="button" onclick="closeModal()"
+            class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">Discard</button>
+        <button type="submit"
+            class="flex-[2] py-4 bg-primary-950 hover:bg-primary-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-primary-900/20">{{button_text }}</button>
+    </div>
+</form>
+
+<script>
+    lucide.createIcons();
+</script>

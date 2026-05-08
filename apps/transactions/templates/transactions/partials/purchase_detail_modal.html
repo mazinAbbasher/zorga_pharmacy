@@ -1,0 +1,76 @@
+<div class="p-8">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h3 class="text-2xl font-black text-slate-900 tracking-tight">Purchase Details</h3>
+            <p class="text-sm font-medium text-slate-500">Invoice: {{ purchase.invoice_number }}</p>
+        </div>
+        <div class="text-right">
+            <span class="block text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Purchase Date</span>
+            <p class="text-sm font-bold text-slate-700">{{ purchase.purchase_date|date:"M d, Y" }}</p>
+        </div>
+    </div>
+
+    <!-- Supplier Info -->
+    <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 mb-8 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div
+                class="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+                <i data-lucide="truck" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Supplier</p>
+                <p class="text-lg font-bold text-slate-900">{{ purchase.supplier.name }}</p>
+            </div>
+        </div>
+        <div class="text-right">
+            <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Recorded By</p>
+            <p class="text-sm font-bold text-slate-700">{{         purchase.received_by.get_full_name|default:purchase.received_by.username }}</p>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 mb-8 shadow-sm">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <th class="px-6 py-4">Drug</th>
+                    <th class="px-6 py-4">Batch</th>
+                    <th class="px-6 py-4 text-center">Qty</th>
+                    <th class="px-6 py-4 text-right">Cost</th>
+                    <th class="px-6 py-4 text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 border-t border-slate-100">
+                {% for item in purchase.items.all %}
+                <tr class="text-sm font-medium text-slate-700">
+                    <td class="px-6 py-4 font-bold">{{ item.drug.trade_name }}</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-600">{{               item.batch_number }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">{{ item.quantity }}</td>
+                    <td class="px-6 py-4 text-right">SDG {{ item.purchase_price|floatformat:0 }}</td>
+                    <td class="px-6 py-4 text-right font-black">SDG {{ item.total_price|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Total -->
+    <div class="flex justify-between items-center pt-6 border-t border-slate-100">
+        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Grand Total</span>
+        <span class="text-3xl font-black text-slate-900 tracking-tight">SDG {{ purchase.total_amount|floatformat:0       }}</span>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="flex items-center justify-end space-x-3 mt-10 pt-8 border-t border-slate-100">
+        <button onclick="closeModal()"
+            class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+            Close
+        </button>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

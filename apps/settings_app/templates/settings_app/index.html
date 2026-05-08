@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}Settings | Pharmacy POS{% endblock %}
+{% block header_title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    <div class="card p-8 bg-white border-l-4 border-l-primary">
+        <h3 class="text-xl font-bold text-slate-800 mb-6">General Information</h3>
+        <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Pharmacy
+                        Name</label>
+                    <p class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">Mazn Pharmacy POS</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">System
+                        Version</label>
+                    <p class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">v1.0 (Full Offline)</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Local
+                        Currency</label>
+                    <p class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">USD ($)</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Database
+                        Engine</label>
+                    <p class="text-lg font-bold text-slate-900 border-b border-slate-100 pb-2">SQLite (Local File)</p>
+                </div>
+            </div>
+
+            <div class="pt-6">
+                <h4 class="text-sm font-bold text-slate-700 mb-4">Print Configuration</h4>
+                <div class="flex items-center space-x-6">
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" checked class="w-5 h-5 text-accent rounded focus:ring-accent">
+                        <span class="text-slate-700">Auto-print receipt on checkout</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" checked class="w-5 h-5 text-accent rounded focus:ring-accent">
+                        <span class="text-slate-700">Show scientific name on receipt</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="card p-6 bg-slate-50 border border-slate-200">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">Backup & Restore</h3>
+            <p class="text-sm text-slate-600 mb-6">Since this is a local system, your data is stored in `db.sqlite3`.
+                You can manually copy this file to back up your entire database.</p>
+            <button class="btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 w-full mb-3">Export
+                Database Backup</button>
+            <button class="btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 w-full">Export CSV
+                Reports</button>
+        </div>
+
+        <div class="card p-6 bg-red-50 border border-red-100">
+            <h3 class="text-lg font-bold text-red-800 mb-4">Danger Zone</h3>
+            <p class="text-sm text-red-600 mb-6">Deleting data is permanent. Use with caution.</p>
+            <button class="btn bg-red-600 text-white hover:bg-red-700 w-full">Wipe Sales History</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

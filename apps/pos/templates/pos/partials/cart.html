@@ -1,0 +1,20 @@
+{% include 'pos/partials/cart_items_content.html' %}
+
+<div id="cart-summary" hx-swap-oob="true">
+    {% include 'pos/partials/cart_summary_content.html' %}
+</div>
+
+{% if error %}
+<div id="messages-container" hx-swap-oob="afterbegin">
+    <div
+        class="p-4 rounded-2xl shadow-xl flex items-start space-x-3 border animate-in slide-in-from-top duration-300 bg-white border-red-100 text-red-800 mb-4">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 mt-0.5"></i>
+        <div class="flex-1">
+            <p class="text-sm font-semibold">{{ error }}</p>
+        </div>
+        <button onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+
+{% block title %}Terminal | PharmaLink{% endblock %}
+{% block header_title %}POS Terminal{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-12 gap-8 h-[calc(100vh-160px)] animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <!-- Left Column: Search & Items -->
+    <div class="col-span-12 lg:col-span-8 flex flex-col space-y-6 h-full min-h-0">
+        <!-- Search/Scan Bar - REDESIGNED for Premium Feel -->
+        <div class="relative group">
+            <div
+                class="absolute -inset-1 bg-gradient-to-r from-accent-600 to-primary-600 rounded-[2.5rem] blur opacity-20 group-focus-within:opacity-40 transition duration-1000 group-focus-within:duration-200">
+            </div>
+            <div class="bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl relative overflow-visible border border-white/5">
+                <!-- Decorative Background -->
+                <div
+                    class="absolute top-0 right-0 w-64 h-64 bg-accent-600/10 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none">
+                </div>
+
+                <div id="qr-reader"
+                    class="hidden mb-6 rounded-3xl overflow-hidden border-4 border-accent-600/50 shadow-2xl"></div>
+
+                <div class="relative z-10 flex flex-col md:flex-row items-stretch gap-4">
+                    <div class="relative flex-1 group/input">
+                        <div class="absolute inset-y-0 left-0 pl-7 flex items-center pointer-events-none">
+                            <i data-lucide="search"
+                                class="w-7 h-7 text-slate-500 group-focus-within/input:text-accent-400 group-focus-within/input:scale-110 transition-all"></i>
+                        </div>
+
+                        <input type="text" id="pos-search-input" name="q" hx-get="{% url 'pos:search_drugs' %}"
+                            hx-trigger="keyup changed delay:300ms" hx-target="#search-results"
+                            hx-indicator="#search-loading" autofocus autocomplete="off"
+                            placeholder="Search drug name or scan barcode..."
+                            class="block w-full pl-16 pr-8 py-6 bg-white/5 border border-white/10 rounded-2xl text-2xl font-black text-white placeholder:text-slate-600 focus:outline-none focus:ring-0 focus:border-accent-400/50 transition-all font-mono tracking-tight">
+
+                        <div id="search-loading" class="htmx-indicator absolute right-8 top-1/2 -translate-y-1/2">
+                            <div
+                                class="animate-spin rounded-full h-8 w-8 border-4 border-accent-400 border-t-transparent shadow-lg shadow-accent-400/20">
+                            </div>
+                        </div>
+
+                        <!-- Search Results Dropdown -->
+                        <div id="search-results" class="relative"></div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="toggleScanner()" id="scanner-btn"
+                            class="bg-white/5 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 px-8 py-6 rounded-2xl transition-all flex items-center space-x-4 border border-white/10 group/btn shadow-lg hover:shadow-emerald-500/10">
+                            <i data-lucide="scan"
+                                class="w-7 h-7 group-hover/btn:scale-125 transition-transform duration-300"></i>
+                            <span class="text-xs font-black uppercase tracking-[0.3em]">Scan QR</span>
+                        </button>
+
+                        <form id="pos-barcode-form" hx-post="{% url 'pos:add_to_cart' %}" hx-target="#cart-container"
+                            class="hidden">
+                            {% csrf_token %}
+                            <input type="hidden" name="barcode" id="hidden-barcode-input">
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cart Table - REDESIGNED for Premium Feel -->
+        <div id="cart-container"
+            class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-slate-200/60 flex-1 overflow-hidden flex flex-col shadow-2xl shadow-slate-200/50">
+            {% include 'pos/partials/cart_items_content.html' %}
+        </div>
+    </div>
+
+    <!-- Right Column: Billing & Customer - REDESIGNED for Premium Feel -->
+    <div class="col-span-12 lg:col-span-4 h-full min-h-0 flex flex-col">
+        <div
+            class="bg-white rounded-[2.5rem] border border-slate-200/60 h-full flex flex-col shadow-2xl shadow-slate-200/50 overflow-hidden">
+            <div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                    <h3 class="text-2xl font-black text-slate-900 tracking-tight">Checkout</h3>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Order Details</p>
+                </div>
+                <div
+                    class="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center">
+                    <i data-lucide="receipt-text" class="w-6 h-6 text-accent-600"></i>
+                </div>
+            </div>
+
+            <form action="{% url 'pos:checkout' %}" method="post"
+                class="flex-1 flex flex-col px-10 py-8 space-y-8 min-h-0 overflow-y-auto custom-scrollbar">
+                {% csrf_token %}
+
+                <div class="space-y-8">
+                    <!-- Customer Selection -->
+                    <div class="flex items-center space-x-2">
+                        <div class="relative flex-1 group">
+                            <select name="customer_id" id="customer-select"
+                                class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all appearance-none cursor-pointer">
+                                <option value="">Walk-in Customer</option>
+                                {% for customer in customers %}
+                                <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.phone_number|default:"No Phone" }})</option>
+                                {% endfor %}
+                            </select>
+                            <div
+                                class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none text-slate-400 group-hover:text-accent-600 transition-colors">
+                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                        <button type="button" hx-get="{% url 'customers:create' %}?from_pos=true"
+                            hx-target="#modal-content"
+                            class="p-4 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-2xl border border-accent-200 transition-all active:scale-90 shadow-sm shadow-accent-600/10 group/add"
+                            title="Quick Register Customer">
+                            <i data-lucide="user-plus"
+                                class="w-6 h-6 transition-transform group-hover/add:scale-110"></i>
+                        </button>
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Payment
+                            Method</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            {% for method, icon, label in payment_options %}
+                            <label
+                                class="relative flex flex-col items-center justify-center p-5 border-2 border-slate-100 rounded-3xl cursor-pointer hover:bg-slate-50 transition-all group has-[:checked]:border-accent-600 has-[:checked]:bg-accent-50/50 has-[:checked]:shadow-lg has-[:checked]:shadow-accent-600/5">
+                                <input type="radio" name="payment_method" value="{{ method }}" class="hidden" {% if method == 'CASH' %}checked{% endif %}>
+                                <div
+                                    class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mb-3 group-hover:bg-white group-has-[:checked]:bg-white group-has-[:checked]:shadow-sm transition-all">
+                                    <i data-lucide="{{ icon }}"
+                                        class="w-6 h-6 text-slate-400 group-hover:text-accent-600 group-has-[:checked]:text-accent-600 transition-colors"></i>
+                                </div>
+                                <span
+                                    class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-900 group-has-[:checked]:text-accent-950">{{label}}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Discount Section - REDESIGNED -->
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Special
+                            Discount</label>
+                        <div class="relative group">
+                            <div
+                                class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-red-500/50 group-focus-within:text-red-500 transition-colors">
+                                <i data-lucide="tag" class="w-5 h-5"></i>
+                            </div>
+                            <input type="number" name="discount" step="1.0" value="0"
+                                class="block w-full pl-12 pr-6 py-4 bg-red-50/20 border border-red-100 rounded-2xl text-lg font-black text-red-700 focus:ring-4 focus:ring-red-500/10 focus:border-red-400 transition-all placeholder:text-red-300">
+                            <div class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
+                                <span class="text-[10px] font-black text-red-300 uppercase">SDG</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-10" id="cart-summary">
+                    {% include 'pos/partials/cart_summary_content.html' %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+    // Audio Context for Scanner Beep
+    let audioCtx = null;
+    function playBeep() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
+    }
+
+    // Real-time Billing Updates
+    function updateTotals() {
+        const subtotalEl = document.getElementById('subtotal-val');
+        const discountInput = document.querySelector('input[name="discount"]');
+        const discountDisplay = document.getElementById('discount-display');
+        const finalTotalDisplay = document.getElementById('final-total-display');
+        const checkoutBtn = document.getElementById('checkout-btn');
+
+        if (!subtotalEl || !discountInput || !finalTotalDisplay) return;
+
+        const subtotal = parseFloat(subtotalEl.getAttribute('data-subtotal')) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        const total = Math.max(0, subtotal - discount);
+
+        if (discountDisplay) {
+            discountDisplay.textContent = `-SDG ${discount.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
+        }
+        finalTotalDisplay.textContent = `SDG ${total.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
+
+        if (checkoutBtn) {
+            checkoutBtn.disabled = (subtotal <= 0);
+        }
+    }
+
+    // Event Delegation for Billing
+    document.addEventListener('input', (e) => {
+        if (e.target.name === 'discount') {
+            updateTotals();
+        }
+    });
+
+    // Hardware Scanner Fallback & Search Keyboard Navigation
+    let barcodeString = "";
+    let lastKeyTime = Date.now();
+
+    document.addEventListener('keydown', (e) => {
+        const searchInput = document.getElementById('pos-search-input');
+        const resultsList = document.getElementById('search-results-list');
+        const activeItem = document.activeElement;
+
+        // Handle Enter key for search input regardless of results dropdown
+        if (e.key === 'Enter' && activeItem === searchInput) {
+            e.preventDefault();
+            if (searchInput.value.trim().length > 0) {
+                const hiddenInput = document.getElementById('hidden-barcode-input');
+                if (hiddenInput) {
+                    hiddenInput.value = searchInput.value.trim();
+                    htmx.trigger("#pos-barcode-form", "submit");
+                    searchInput.value = '';
+                    if (document.getElementById('search-results')) {
+                        document.getElementById('search-results').innerHTML = '';
+                    }
+                }
+            }
+            return;
+        }
+
+        if (resultsList && (searchInput === activeItem || resultsList.contains(activeItem))) {
+            const items = Array.from(document.querySelectorAll('.search-result-item'));
+            const currentIndex = items.indexOf(activeItem);
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextItem = items[currentIndex + 1] || items[0];
+                if (nextItem) nextItem.focus();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevItem = items[currentIndex - 1] || items[items.length - 1];
+                if (prevItem) prevItem.focus();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                activeItem.click();
+            } else if (e.key === 'Escape') {
+                document.getElementById('search-results').innerHTML = '';
+                searchInput.focus();
+            }
+        }
+    });
+
+    document.addEventListener('keypress', (e) => {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+            return;
+        }
+
+        const currentTime = Date.now();
+        if (currentTime - lastKeyTime > 100) {
+            barcodeString = "";
+        }
+        lastKeyTime = currentTime;
+
+        if (e.key === 'Enter') {
+            if (barcodeString.length > 3) {
+                const hiddenInput = document.getElementById('hidden-barcode-input');
+                if (hiddenInput) {
+                    hiddenInput.value = barcodeString;
+                    htmx.trigger("#pos-barcode-form", "submit");
+                }
+                barcodeString = "";
+                e.preventDefault();
+            }
+        } else {
+            barcodeString += e.key;
+        }
+    });
+
+    // QR Scanner Implementation
+    let html5QrCode = null;
+
+    async function toggleScanner() {
+        const reader = document.getElementById('qr-reader');
+        const btn = document.getElementById('scanner-btn');
+
+        if (reader.classList.contains('hidden')) {
+            reader.classList.remove('hidden');
+            btn.classList.add('bg-red-600', 'text-white', 'scale-105');
+            btn.classList.remove('bg-white/5', 'text-emerald-400');
+            btn.innerHTML = '<i data-lucide="x" class="w-7 h-7"></i><span class="text-xs font-black uppercase tracking-[0.3em]">Stop Scan</span>';
+            lucide.createIcons();
+            startScanner();
+        } else {
+            stopScanner();
+            reader.classList.add('hidden');
+            btn.classList.remove('bg-red-600', 'text-white', 'scale-105');
+            btn.classList.add('bg-white/5', 'text-emerald-400');
+            btn.innerHTML = '<i data-lucide="scan" class="w-7 h-7"></i><span class="text-xs font-black uppercase tracking-[0.3em]">Scan QR</span>';
+            lucide.createIcons();
+        }
+    }
+
+    function startScanner() {
+        html5QrCode = new Html5Qrcode("qr-reader");
+        const config = { fps: 15, qrbox: { width: 300, height: 300 } };
+
+        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+            playBeep();
+            const hiddenInput = document.getElementById('hidden-barcode-input');
+            if (hiddenInput) {
+                hiddenInput.value = decodedText;
+                htmx.trigger("#pos-barcode-form", "submit");
+            }
+            toggleScanner();
+        });
+    }
+
+    function stopScanner() {
+        if (html5QrCode) {
+            try {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                }).catch((err) => {
+                    console.error(err);
+                    try { html5QrCode.clear(); } catch(e) {}
+                });
+            } catch (err) {
+                console.error("Scanner wasn't running", err);
+                try { html5QrCode.clear(); } catch(e) {}
+            }
+        }
+    }
+
+    document.body.addEventListener('htmx:afterSwap', (e) => {
+        lucide.createIcons();
+        if (e.detail.target.id === 'cart-container' || e.detail.target.id === 'cart-summary') {
+            updateTotals();
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        const searchResults = document.getElementById('search-results');
+        const searchInput = document.getElementById('pos-search-input');
+        if (searchResults && !searchResults.contains(e.target) && e.target !== searchInput) {
+            searchResults.innerHTML = '';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', updateTotals);
+</script>
+{% endblock %}

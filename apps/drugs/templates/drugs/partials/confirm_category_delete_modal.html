@@ -1,0 +1,38 @@
+<div class="p-8">
+    <div class="flex items-center space-x-4 mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600">
+            <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+        </div>
+        <div>
+            <h3 class="text-xl font-black text-slate-900 tracking-tight">Delete Category?</h3>
+            <p class="text-sm font-medium text-slate-500">Confirm deletion of <b>{{ category.name }}</b></p>
+        </div>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 mb-8">
+        <div class="flex space-x-3">
+            <i data-lucide="info" class="w-5 h-5 text-amber-600 shrink-0"></i>
+            <p class="text-xs font-semibold text-amber-800 leading-relaxed">
+                Warning: Drugs associated with this category will have their category set to 'None'. This action cannot
+                be undone.
+            </p>
+        </div>
+    </div>
+
+    <form hx-post="{% url 'drugs:category_delete' category.id %}" hx-target="#modal-content"
+        class="flex items-center justify-end space-x-3">
+        {% csrf_token %}
+        <button type="button" onclick="closeModal()"
+            class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+            Cancel
+        </button>
+        <button type="submit"
+            class="px-8 py-3 bg-red-600 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all">
+            Delete Category
+        </button>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

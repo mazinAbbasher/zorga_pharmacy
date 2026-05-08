@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management | Pharmacy POS{% endblock %}
+{% block header_title %}User Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h3 class="text-xl font-bold text-slate-800">System Users</h3>
+        <a href="{% url 'users:create' %}" class="btn btn-primary flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+            </svg>
+            <span>Create User</span>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50/50 border-b border-slate-200">
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">User</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Role</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Joined</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for u in users %}
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-4">
+                            <div
+                                class="w-10 h-10 rounded-xl bg-accent-600/10 flex items-center justify-center font-bold text-accent-700">
+                                {{ u.username|first|upper }}
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-900">{{ u.username }}</div>
+                                <div class="text-xs text-slate-500">{{ u.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if u.role == 'ADMIN' %}bg-purple-50 text-purple-700 border border-purple-100
+                            {% elif u.role == 'PHARMACIST' %}bg-blue-50 text-blue-700 border border-blue-100
+                            {% else %}bg-green-50 text-green-700 border border-green-100{% endif %}">
+                            {{ u.role }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-600">{{ u.phone_number|default:"-" }}</td>
+                    <td class="px-6 py-4 text-sm text-slate-500">{{ u.date_joined|date:"M d, Y" }}</td>
+                    <td class="px-6 py-4">
+                        {% if u.is_active %}
+                        <span class="inline-flex items-center space-x-1.5 text-green-600">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider">Active</span>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center space-x-1.5 text-slate-400">
+                            <span class="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider">Inactive</span>
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div
+                            class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href="{% url 'users:edit' u.pk %}"
+                                class="p-2 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg transition-colors"
+                                title="Edit User">
+                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            </a>
+                            <a href="{% url 'users:delete' u.pk %}"
+                                class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete User">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

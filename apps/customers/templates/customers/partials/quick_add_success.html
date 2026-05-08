@@ -1,0 +1,16 @@
+<div class="p-8 text-center">
+    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+    </div>
+    <h3 class="text-xl font-bold text-slate-800 mb-2">Customer Added!</h3>
+    <p class="text-slate-600 mb-6">{{ customer.name }} has been registered.</p>
+
+    <button onclick="closeModal()" class="btn btn-primary w-full py-3">Continue to POS</button>
+</div>
+
+<script>
+    // Optionally trigger a refresh of a customer select dropdown in POS if it exists
+    document.body.dispatchEvent(new CustomEvent('customerAdded', { detail: { id: '{{ customer.id }}', name: '{{ customer.name }}' } }));
+</script>

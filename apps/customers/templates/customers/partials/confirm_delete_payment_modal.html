@@ -1,0 +1,30 @@
+<div class="p-8 text-center">
+    <div class="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+        <i data-lucide="trash-2" class="w-10 h-10"></i>
+    </div>
+    <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Delete Payment Record?</h3>
+    <p class="text-slate-500 font-medium mb-8 leading-relaxed">
+        You are about to remove a payment of <b class="text-slate-900">SDG {{ payment.amount|floatformat:0 }}</b> from
+        <b>{{ customer.name }}</b>.<br>
+        This action will <b>recalculate the customer balance</b> automatically.
+    </p>
+
+    <div class="flex items-center justify-center space-x-3">
+        <button type="button" onclick="closeModal()"
+            class="px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+            Cancel
+        </button>
+        <form method="POST" hx-post="{% url 'customers:delete_payment' payment.id %}" hx-target="#modal-content"
+            class="inline">
+            {% csrf_token %}
+            <button type="submit"
+                class="px-8 py-4 bg-red-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all">
+                Yes, Delete Record
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

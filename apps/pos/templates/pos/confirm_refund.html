@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Refund | Pharmacy POS{% endblock %}
+{% block header_title %}Refund Sale #{{ sale.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="card p-8 border-t-4 border-t-red-500">
+        <h3 class="text-2xl font-bold text-slate-800 mb-4">Are you sure you want to refund this sale?</h3>
+        <p class="text-slate-600 mb-6">This action will:
+        <ul class="list-disc list-inside mt-2 space-y-1 text-slate-600">
+            <li>Restore <strong>{{ sale.items.count }}</strong> items to inventory.</li>
+            <li>Create a "RETURN" movement log for auditing.</li>
+            <li>Remove the sale record from transaction history.</li>
+        </ul>
+        </p>
+
+        <div class="bg-slate-50 p-4 rounded-lg mb-8">
+            <div class="flex justify-between mb-2">
+                <span class="text-slate-500">Total Amount:</span>
+                <span class="font-bold text-slate-900">SDG {{ sale.final_amount }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-slate-500">Items:</span>
+                <span class="text-sm font-medium">
+                    {% for item in sale.items.all %}
+                    {{ item.drug.trade_name }} (x{{ item.quantity }}){% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                </span>
+            </div>
+        </div>
+
+        <div class="flex space-x-4">
+            <form method="post" class="flex-1">
+                {% csrf_token %}
+                <button type="submit" class="w-full btn bg-red-600 text-white hover:bg-red-700 py-3 font-bold">
+                    CONFIRM REFUND
+                </button>
+            </form>
+            <a href="{% url 'dashboard:index' %}"
+                class="flex-1 btn bg-slate-100 text-slate-700 hover:bg-slate-200 py-3 text-center font-bold">
+                CANCEL
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

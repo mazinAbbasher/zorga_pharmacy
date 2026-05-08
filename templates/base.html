@@ -1,0 +1,304 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Pharmacy Management System{% endblock %}</title>
+    <!-- Google Fonts: Inter -->
+    <link href="{% static 'vendors/inter/index.css' %}" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <link href="{% static 'css/output.css' %}" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="{% static 'vendors/lucide/lucide.min.js' %}"></script>
+
+    <!-- HTMX -->
+    <script src="{% static 'js/htmx.min.js' %}" defer></script>
+
+    <!-- QR Scanner -->
+    <script src="{% static 'vendors/html5-qrcode/html5-qrcode.min.js' %}"></script>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .htmx-indicator.htmx-request {
+            display: inline-block !important;
+        }
+
+        .htmx-indicator {
+            display: none;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="bg-gray-50 text-slate-900 font-sans antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-primary-950 text-white flex-shrink-0 flex flex-col shadow-xl z-20">
+            <div class="h-16 flex items-center px-6 border-b border-white/5">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-accent-600 p-1.5 rounded-lg">
+                        <i data-lucide="cross" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">PharmaLink</h1>
+                </div>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+                <p class="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Main Menu</p>
+                {% if user.role == 'ADMIN' %}
+                <a href="{% url 'dashboard:index' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'dashboard' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                {% endif %}
+
+                <a href="{% url 'pos:index' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'pos' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+                    <span>POS Terminal</span>
+                </a>
+
+                <p class="px-4 py-2 mt-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Inventory</p>
+
+                <a href="{% url 'drugs:list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.view_name == 'drugs:list' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="pill" class="w-5 h-5"></i>
+                    <span>Drugs & Stock</span>
+                </a>
+
+                <a href="{% url 'drugs:category_list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.view_name == 'drugs:category_list' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="tags" class="w-5 h-5"></i>
+                    <span>Categories</span>
+                </a>
+
+                {% if user.role == 'ADMIN' %}
+                <a href="{% url 'purchases:list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'purchases' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="package-plus" class="w-5 h-5"></i>
+                    <span>Purchases</span>
+                </a>
+
+                <a href="{% url 'suppliers:list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'suppliers' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="truck" class="w-5 h-5"></i>
+                    <span>Suppliers</span>
+                </a>
+                {% endif %}
+
+                <p class="px-4 py-2 mt-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">CRM & Insights
+                </p>
+
+                <a href="{% url 'customers:list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'customers' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Customers</span>
+                </a>
+
+                {% if user.role == 'ADMIN' %}
+                <a href="{% url 'reports:index' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'reports' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <span>Reports</span>
+                </a>
+                {% endif %}
+
+                <a href="{% url 'transactions:list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'transactions' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="history" class="w-5 h-5"></i>
+                    <span>Transactions</span>
+                </a>
+
+                {% if user.role == 'ADMIN' %}
+                <p class="px-4 py-2 mt-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">System</p>
+                <a href="{% url 'users:list' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'users' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="user-cog" class="w-5 h-5"></i>
+                    <span>Team Management</span>
+                </a>
+                <!-- <a href="{% url 'settings_app:index' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'settings_app' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Config</span>
+                </a> -->
+                {% endif %}
+            </nav>
+
+            <div class="p-4 border-t border-white/5 bg-black/20">
+                <div class="flex items-center space-x-3 mb-4 px-2">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-accent-600 flex items-center justify-center text-sm font-bold shadow-lg shadow-accent-600/20">
+                        {{ user.username|first|upper }}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold truncate">{{ user.get_full_name|default:user.username }}</p>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{{ user.role }}</p>
+                    </div>
+                </div>
+                <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="w-full flex items-center space-x-3 px-4 py-2.5 rounded-xl hover:bg-red-500/10 text-red-400 transition-all duration-200 group text-sm font-medium">
+                        <i data-lucide="log-out" class="w-4 h-4 transition-transform group-hover:-translate-x-1"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 bg-gray-50 overflow-hidden relative">
+            <!-- Top Navbar -->
+            <header
+                class="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
+                <div class="flex items-center space-x-4">
+                    <h2 class="text-lg font-bold text-slate-800">{% block header_title %}Overview{% endblock %}</h2>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="hidden md:flex flex-col items-end">
+                        <div class="text-[10px] text-slate-400 uppercase font-bold tracking-widest leading-none mb-1">
+                            Local Server Status</div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                            <span class="text-xs font-semibold text-slate-600 uppercase">Online</span>
+                        </div>
+                    </div>
+                    <div class="h-8 w-px bg-slate-200"></div>
+                    <div class="text-sm text-slate-600 font-bold bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm"
+                        id="current-time"></div>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="flex-1 overflow-y-auto p-8 custom-scrollbar" id="main-content">
+                <div id="messages-container">
+                    {% if messages %}
+                    <div class="fixed top-8 right-8 z-50 space-y-3 w-80">
+                        {% for message in messages %}
+                        <div
+                            class="p-4 rounded-2xl shadow-xl flex items-start space-x-3 border animate-in slide-in-from-right-10 duration-300 {% if message.tags == 'success' %}bg-white border-green-100 text-green-800{% elif message.tags == 'error' %}bg-white border-red-100 text-red-800{% else %}bg-white border-blue-100 text-blue-800{% endif %}">
+                            {% if message.tags == 'success' %}
+                            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500 mt-0.5"></i>
+                            {% elif message.tags == 'error' %}
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 mt-0.5"></i>
+                            {% else %}
+                            <i data-lucide="info" class="w-5 h-5 text-blue-500 mt-0.5"></i>
+                            {% endif %}
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold">{{ message }}</p>
+                            </div>
+                            <button onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Simple clock
+        function updateTime() {
+            const now = new Date();
+            const options = {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('current-time').textContent = now.toLocaleDateString('en-US', options);
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // Auto-hide messages
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.fixed.top-8.right-8 > div');
+            messages.forEach(msg => {
+                msg.classList.add('animate-out', 'fade-out', 'slide-out-to-right-10');
+                setTimeout(() => msg.remove(), 500);
+            });
+        }, 5000);
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+    <!-- HTMX Modal Container -->
+    <div id="modal-container" class="hidden fixed inset-0 z-[100] overflow-y-auto flex items-center justify-center p-4">
+        <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onclick="closeModal()"></div>
+        <div id="modal-content"
+            class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg transform transition-all duration-300 scale-95 opacity-0">
+            <!-- Modal content injected here -->
+        </div>
+    </div>
+
+    <script>
+        // Re-initialize Lucide icons after any HTMX swap
+        document.body.addEventListener('htmx:afterSwap', function (evt) {
+            lucide.createIcons();
+
+            if (evt.detail.target.id === 'modal-content') {
+                const container = document.getElementById('modal-container');
+                const content = document.getElementById('modal-content');
+                container.classList.remove('hidden');
+                setTimeout(() => {
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                }, 10);
+            }
+        });
+
+        document.body.addEventListener('closeModal', function () {
+            closeModal();
+        });
+
+        function closeModal() {
+            const content = document.getElementById('modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('modal-container').classList.add('hidden');
+                document.getElementById('modal-content').innerHTML = '';
+            }, 300);
+        }
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+
+</html>

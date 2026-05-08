@@ -1,0 +1,34 @@
+<div id="messages-container" hx-swap-oob="true">
+    {% if messages %}
+    <div class="fixed top-8 right-8 z-50 space-y-3 w-80">
+        {% for message in messages %}
+        <div
+            class="p-4 rounded-2xl shadow-xl flex items-start space-x-3 border animate-in slide-in-from-right-10 duration-300 {% if message.tags == 'success' %}bg-white border-green-100 text-green-800{% elif message.tags == 'error' %}bg-white border-red-100 text-red-800{% else %}bg-white border-blue-100 text-blue-800{% endif %}">
+            {% if message.tags == 'success' %}
+            <i data-lucide="check-circle-2" class="w-5 h-5 text-green-500 mt-0.5"></i>
+            {% elif message.tags == 'error' %}
+            <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 mt-0.5"></i>
+            {% else %}
+            <i data-lucide="info" class="w-5 h-5 text-blue-500 mt-0.5"></i>
+            {% endif %}
+            <div class="flex-1">
+                <p class="text-sm font-semibold">{{ message }}</p>
+            </div>
+            <button onclick="this.closest('div').remove()" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        lucide.createIcons();
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.fixed.top-8.right-8 > div');
+            messages.forEach(msg => {
+                msg.classList.add('animate-out', 'fade-out', 'slide-out-to-right-10');
+                setTimeout(() => msg.remove(), 500);
+            });
+        }, 5000);
+    </script>
+    {% endif %}
+</div>

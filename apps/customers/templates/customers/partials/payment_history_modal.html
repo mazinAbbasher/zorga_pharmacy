@@ -1,0 +1,69 @@
+<div class="px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+    <div>
+        <h3 class="text-xl font-black text-slate-800">Payment History</h3>
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{ customer.name }}</p>
+    </div>
+    <button onclick="closeModal()" class="p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-400">
+        <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+</div>
+
+<div class="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+    <div class="space-y-4">
+        {% for entry in ledger %}
+        <div
+            class="p-4 rounded-2xl border flex items-center justify-between group transition-all 
+            {% if entry.type == 'DEBT' %}bg-red-50/30 border-red-100 hover:border-red-200{% else %}bg-green-50/30 border-green-100 hover:border-green-200{% endif %}">
+
+            <div class="flex items-center space-x-4">
+                <div
+                    class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border 
+                    {% if entry.type == 'DEBT' %}bg-red-100 text-red-600 border-red-200{% else %}bg-green-100 text-green-600 border-green-200{% endif %}">
+                    <i data-lucide="{% if entry.type == 'DEBT' %}shopping-cart{% else %}banknote{% endif %}"
+                        class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <div class="text-sm font-bold text-slate-900">{{ entry.date|date:"F d, Y" }}</div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        {{ entry.reference }} {% if entry.type == 'DEBT' %}(DEBT){% else %}(CREDIT){% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="text-right">
+                    <div
+                        class="text-lg font-black {% if entry.type == 'DEBT' %}text-red-500{% else %}text-green-600{% endif %}">
+                        {% if entry.type == 'DEBT' %}-{% else %}+{% endif %}SDG {{ entry.amount|floatformat:0 }}
+                    </div>
+                    {% if entry.notes %}
+                    <div class="text-[10px] font-medium text-slate-400 italic">{{ entry.notes }}</div>
+                    {% endif %}
+                </div>
+
+                {% if entry.type == 'CREDIT' %}
+                <div class="flex flex-col space-y-1">
+                    <button hx-get="{% url 'customers:update_payment' entry.id %}" hx-target="#modal-content"
+                        class="p-2 text-slate-400 hover:text-accent-600 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                    </button>
+                    <button hx-get="{% url 'customers:delete_payment' entry.id %}" hx-target="#modal-content"
+                        class="p-2 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm border border-transparent hover:border-slate-100">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="py-12 text-center text-slate-400">
+            <i data-lucide="history" class="w-12 h-12 mx-auto mb-4 opacity-10"></i>
+            <p class="text-xs font-black uppercase tracking-widest">No financial history found</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

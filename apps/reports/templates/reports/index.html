@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics | PharmaLink{% endblock %}
+{% block header_title %}System Analytics{% endblock %}
+
+{% block content %}
+<div class="space-y-10 animate-in fade-in duration-500">
+    <!-- Date Filters Bar -->
+    <div
+        class="bg-white p-6 rounded-[2rem] border border-slate-200/60 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-2xl bg-accent-50 flex items-center justify-center text-accent-600">
+                <i data-lucide="calendar-range" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black text-slate-900 tracking-tight">Report Period</h3>
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Select custom range for metrics
+                </p>
+            </div>
+        </div>
+
+        <form method="get" class="flex flex-wrap items-center gap-4">
+            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase">From</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}"
+                    class="bg-transparent border-none text-sm font-bold text-slate-700 p-0 focus:ring-0">
+            </div>
+            <div class="flex items-center space-x-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase">To</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}"
+                    class="bg-transparent border-none text-sm font-bold text-slate-700 p-0 focus:ring-0">
+            </div>
+            <button type="submit"
+                class="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-lg active:scale-95">
+                Generate
+            </button>
+            <a href="{% url 'reports:index' %}"
+                class="px-6 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                Reset
+            </a>
+        </form>
+    </div>
+    <!-- Premium Metric Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Revenue Card -->
+        <div
+            class="bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl shadow-primary-900/40 relative overflow-hidden group">
+            <div
+                class="absolute top-0 right-0 w-32 h-32 bg-accent-600/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-accent-600/20 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-6 backdrop-blur-md border border-white/10">
+                    <i data-lucide="line-chart" class="w-7 h-7"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Total Gross Revenue <span
+                        class="text-accent-500/60 ml-2">(Excluding Refunds)</span></h4>
+                <div class="flex items-baseline space-x-2 mt-2">
+                    <span class="text-4xl font-black text-white">SDG {{ total_revenue|floatformat:0 }}</span>
+                    <span class="text-xs font-bold text-green-400 uppercase tracking-wider flex items-center">
+                        <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +12.5%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profit Card -->
+        <div
+            class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm relative overflow-hidden group hover:border-accent-200 transition-all duration-300">
+            <div
+                class="absolute top-0 right-0 w-32 h-32 bg-accent-500/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-accent-500/10 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-accent-50 flex items-center justify-center text-accent-600 mb-6 transition-colors">
+                    <i data-lucide="wallet" class="w-7 h-7"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Estimated Net Profit</h4>
+                <div class="flex items-baseline space-x-2 mt-2">
+                    <span class="text-4xl font-black text-slate-900">SDG {{ net_profit|floatformat:0 }}</span>
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Net Total</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Margin Card -->
+        <div
+            class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm relative overflow-hidden group hover:border-primary-200 transition-all duration-300">
+            <div
+                class="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary-500/10 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div
+                    class="w-14 h-14 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-600 mb-6 transition-colors">
+                    <i data-lucide="pie-chart" class="w-7 h-7"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Average Profit Margin</h4>
+                <div class="flex flex-col mt-2">
+                    <span class="text-4xl font-black text-slate-900">{{ profit_margin|floatformat:0 }}%</span>
+                    <div class="w-full bg-slate-100 h-2 rounded-full mt-4 overflow-hidden border border-slate-200/30">
+                        <div class="bg-primary-600 h-full rounded-full shadow-sm shadow-primary-500/20"
+                            style="width: {{ profit_margin }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Top Performing Products -->
+        <div class="lg:col-span-8 flex flex-col">
+            <div class="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-sm flex-1">
+                <div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xl font-black text-slate-800">Top Product Performance</h3>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5">Highest
+                            contributors to volume & revenue</p>
+                    </div>
+                    <i data-lucide="medal" class="w-6 h-6 text-amber-400"></i>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                <th class="px-10 py-6 border-b border-slate-100">Product Specification</th>
+                                <th class="px-6 py-6 border-b border-slate-100 text-center">Volume Sold</th>
+                                <th class="px-10 py-6 border-b border-slate-100 text-right">Revenue Contributed</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for item in top_selling %}
+                            <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                                <td class="px-10 py-5">
+                                    <div class="flex items-center space-x-4">
+                                        <div
+                                            class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-accent-50 group-hover:text-accent-600 transition-colors">
+                                            <i data-lucide="pill" class="w-5 h-5"></i>
+                                        </div>
+                                        <span
+                                            class="text-sm font-bold text-slate-800 group-hover:text-accent-600 transition-colors">{{item.drug__trade_name}}</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-5 text-center">
+                                    <span
+                                        class="px-3 py-1 bg-slate-100 rounded-lg text-xs font-black text-slate-900">{{item.total_qty}}</span>
+                                </td>
+                                <td class="px-10 py-5 text-right font-black text-slate-900">
+                                    <div class="flex flex-col items-end">
+                                        <span>SDG {{ item.total_revenue|floatformat:0 }}</span>
+                                        <div class="w-24 h-1 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                                            <div class="h-full bg-accent-500"
+                                                style="width: {% widthratio item.total_revenue total_revenue 100 %}%">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="px-10 py-20 text-center opacity-20">
+                                    <i data-lucide="database-zap" class="w-12 h-12 mb-4 mx-auto"></i>
+                                    <span class="text-sm font-black uppercase tracking-widest">Insufficient Data</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Trend & Tools -->
+        <div class="lg:col-span-4 space-y-8">
+            <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-sm p-10">
+                <h3 class="text-xl font-black text-slate-800 border-b border-slate-100 pb-6 mb-8">Weekly Velocity</h3>
+                <div class="space-y-8">
+                    {% for TrendItem in sales_trend %}
+                    <div class="space-y-3 group cursor-default">
+                        <div class="flex justify-between items-center px-1">
+                            <span
+                                class="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors">{{TrendItem.date|date:"l, M d"}}</span>
+                            <span class="text-sm font-black text-slate-900">SDG {{ TrendItem.amount|floatformat:0}}</span>
+                        </div>
+                        <div
+                            class="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200/50 p-0.5">
+                            <div class="bg-primary-600 h-full rounded-full transition-all duration-1000 group-hover:bg-accent-500 shadow-sm"
+                                style="width: {% widthratio TrendItem.amount total_revenue 100 %}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Action tiles -->
+            <div class="grid grid-cols-1 gap-4">
+                <a href="{% url 'reports:dead_stock' %}"
+                    class="bg-white p-6 rounded-[2rem] border border-slate-200/60 hover:border-accent-400 transition-all group shadow-sm flex items-center space-x-5">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-accent-50 group-hover:text-accent-600 transition-colors">
+                        <i data-lucide="box-select" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="block font-black text-slate-800 group-hover:text-accent-600 transition-colors">Dead
+                            Stock</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Inactive Inventory
+                            Analysis</span>
+                    </div>
+                </a>
+                <a href="{% url 'reports:loss_report' %}"
+                    class="bg-white p-6 rounded-[2rem] border border-slate-200/60 hover:border-red-400 transition-all group shadow-sm flex items-center space-x-5">
+                    <div
+                        class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
+                        <i data-lucide="trending-down" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <span class="block font-black text-slate-800 group-hover:text-red-600 transition-colors">Loss
+                            Liability</span>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Expired Goods
+                            Evaluation</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

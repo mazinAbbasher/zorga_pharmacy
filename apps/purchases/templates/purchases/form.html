@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Intake | PharmaLink{% endblock %}
+{% block header_title %}Inventory Records{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div class="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-xl shadow-slate-200/40 overflow-hidden">
+        <!-- Header Section -->
+        <div class="px-12 py-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+            <div>
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">Record Inventory Intake</h3>
+                <p class="text-sm font-medium text-slate-400 mt-1">Initialize procurement vouchers and adjust master
+                    stock levels.</p>
+            </div>
+            <div class="w-14 h-14 rounded-2xl bg-accent-50 flex items-center justify-center text-accent-600">
+                <i data-lucide="package-plus" class="w-7 h-7"></i>
+            </div>
+        </div>
+
+        <form method="post" class="p-12 space-y-12">
+            {% csrf_token %}
+
+            {% if p_form.errors or pi_form.errors %}
+            <div
+                class="p-6 bg-red-50 border border-red-100 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-300">
+                <div class="flex items-center space-x-3 text-red-600 mb-4">
+                    <i data-lucide="alert-circle" class="w-5 h-5"></i>
+                    <span class="text-sm font-black uppercase tracking-widest">Entry Validation Failed</span>
+                </div>
+                <ul class="space-y-1">
+                    {% for field, errors in p_form.errors.items %}
+                    {% for error in errors %}<li class="text-xs font-bold text-red-500 flex items-center"><i
+                            data-lucide="chevron-right" class="w-3 h-3 mr-1"></i> {{ field|title }}: {{ error }}</li>{% endfor %}
+                    {% endfor %}
+                    {% for field, errors in pi_form.errors.items %}
+                    {% for error in errors %}<li class="text-xs font-bold text-red-500 flex items-center"><i
+                            data-lucide="chevron-right" class="w-3 h-3 mr-1"></i> {{ field|title }}: {{ error }}</li>{% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Section 1: Authority & Reference -->
+            <div class="space-y-8">
+                <div class="flex items-center space-x-4">
+                    <div class="w-8 h-8 rounded-lg bg-primary-950 flex items-center justify-center text-white">
+                        <span class="text-[10px] font-black">01</span>
+                    </div>
+                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Procurement Authority &
+                        Reference</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Supplier
+                            Entity</label>
+                        {{ p_form.supplier }}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Invoice /
+                            Voucher #</label>
+                        {{ p_form.invoice_number }}
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Transaction
+                            Date</label>
+                        {{ p_form.purchase_date }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Product Particulars -->
+            <div class="space-y-8">
+                <div class="flex items-center space-x-4">
+                    <div class="w-8 h-8 rounded-lg bg-primary-950 flex items-center justify-center text-white">
+                        <span class="text-[10px] font-black">02</span>
+                    </div>
+                    <h4 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Product Manifest &
+                        Particulars</h4>
+                </div>
+
+                <div class="bg-slate-50/50 rounded-[2rem] p-8 border border-slate-100 space-y-8">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-8">
+                        <div class="md:col-span-2 space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                Target Drug</label>
+                            {{ pi_form.drug }}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Batch
+                                Reference</label>
+                            {{ pi_form.batch_number }}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Intake
+                                Volume</label>
+                            {{ pi_form.quantity }}
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Buy
+                                Price</label>
+                            {{ pi_form.purchase_price }}
+                        </div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200/60">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Batch
+                                    Expiry Validation</label>
+                                {{ pi_form.expiry_date }}
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Public
+                                    Selling Price</label>
+                                {{ pi_form.selling_price }}
+                            </div>
+                            <div class="flex items-center justify-center md:justify-end">
+                                <div
+                                    class="bg-primary-950 text-white px-8 py-5 rounded-2xl shadow-xl flex items-center space-x-4">
+                                    <div class="text-right">
+                                        <div class="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                            Entry Total</div>
+                                        <div class="text-2xl font-black" id="live-total">SDG 0.00</div>
+                                    </div>
+                                    <i data-lucide="calculator" class="w-6 h-6 text-accent-500"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="pt-10 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-slate-100">
+                <div class="flex items-center space-x-4 text-slate-400">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider">System-enforced inventory integrity</span>
+                </div>
+                <div class="flex items-center space-x-4 w-full md:w-auto">
+                    <a href="{% url 'purchases:list' %}"
+                        class="flex-1 md:flex-none px-10 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all text-center">
+                        Discard Changes
+                    </a>
+                    <button type="submit"
+                        class="flex-1 md:flex-none px-12 py-4 bg-accent-600 hover:bg-accent-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-accent-600/30 flex items-center justify-center group">
+                        <span>Finalize Manifest</span>
+                        <i data-lucide="check" class="w-4 h-4 ml-2 transition-transform group-hover:scale-125"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const qtyInput = document.querySelector('input[name="quantity"]');
+    const priceInput = document.querySelector('input[name="purchase_price"]');
+    const totalDisplay = document.getElementById('live-total');
+
+    function updateTotal() {
+        const qty = parseFloat(qtyInput.value) || 0;
+        const price = parseFloat(priceInput.value) || 0;
+        totalDisplay.textContent = `SDG ${(qty * price).toFixed(2)}`;
+    }
+
+    if (qtyInput && priceInput) {
+        qtyInput.addEventListener('input', updateTotal);
+        priceInput.addEventListener('input', updateTotal);
+    }
+</script>
+{% endblock %}

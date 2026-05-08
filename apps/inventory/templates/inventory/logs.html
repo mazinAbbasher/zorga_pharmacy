@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Logs | PharmaLink{% endblock %}
+{% block header_title %}Inventory Audit Trail{% endblock %}
+
+{% block content %}
+<div class="space-y-6 animate-in fade-in duration-500">
+    <div class="flex items-center justify-between px-2">
+        <div>
+            <h3 class="text-xl font-black text-slate-800">Activity Ledger</h3>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1.5">Last 100 Systemic Stock
+                Adjustments</p>
+        </div>
+        <button onclick="window.print()"
+            class="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:text-accent-600 hover:border-accent-200 transition-all shadow-sm">
+            <i data-lucide="printer" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        <th class="px-8 py-6 border-b border-slate-100">Event Timestamp</th>
+                        <th class="px-6 py-6 border-b border-slate-100">Target Product</th>
+                        <th class="px-6 py-6 border-b border-slate-100">Transaction Type</th>
+                        <th class="px-6 py-6 border-b border-slate-100 text-center">Volume</th>
+                        <th class="px-6 py-6 border-b border-slate-100">Auth & Reference</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in logs %}
+                    <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                        <td class="px-8 py-5">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-black text-slate-900">{{ log.timestamp|date:"d M Y" }}</span>
+                                <span class="text-[10px] font-bold text-slate-400">{{ log.timestamp|date:"H:i:s" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center space-x-3">
+                                <div
+                                    class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <i data-lucide="package-check" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-sm font-bold text-slate-800">{{ log.drug.trade_name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex flex-col">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider
+                                    {% if log.movement_type == 'IN' %}bg-green-100 text-green-700
+                                    {% elif log.movement_type == 'OUT' %}bg-accent-100 text-accent-700
+                                    {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                    {{ log.get_movement_type_display }}
+                                </span>
+                                <span class="text-[10px] font-bold text-slate-400 mt-1.5">{{ log.notes|default:"System auto-log" }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-center">
+                            <div class="flex flex-col items-center">
+                                <span
+                                    class="text-sm font-black {% if log.movement_type == 'IN' %}text-green-600{% else %}text-red-500{% endif %}">
+                                    {% if log.movement_type == 'IN' %}+{% else %}-{% endif %}{{ log.quantity }}
+                                </span>
+                                <span class="text-[9px] font-bold text-slate-300 uppercase">Qty Adj.</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-700 flex items-center">
+                                    <i data-lucide="user-check" class="w-3 h-3 mr-1.5 text-slate-400"></i>
+                                    {{ log.user.username|default:"SYSTEM" }}
+                                </span>
+                                <span class="text-[10px] font-mono text-slate-400 mt-1">Ref: {{log.reference_id|default:"AUTOGEN" }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="px-8 py-32 text-center">
+                            <div class="flex flex-col items-center opacity-20">
+                                <i data-lucide="file-clock" class="w-12 h-12 mb-4"></i>
+                                <span class="text-sm font-black uppercase tracking-widest">No activity logs found</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

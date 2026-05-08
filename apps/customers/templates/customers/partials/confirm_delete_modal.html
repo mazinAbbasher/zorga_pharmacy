@@ -1,0 +1,27 @@
+<div class="p-10 text-center">
+    <div class="w-20 h-20 bg-red-50 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto mb-6">
+        <i data-lucide="user-minus" class="w-10 h-10"></i>
+    </div>
+
+    <h3 class="text-2xl font-black text-slate-800 tracking-tight">Erase Profile?</h3>
+    <p class="text-sm font-medium text-slate-400 mt-2 max-w-sm mx-auto">
+        You are removing <span class="font-bold text-slate-900">{{ customer.name }}</span> from the CRM. This will
+        delete all associated medical and credit records permanently.
+    </p>
+
+    <form hx-post="{% url 'customers:delete' customer.id %}" hx-target="#modal-content" class="mt-10 flex space-x-4">
+        {% csrf_token %}
+        <button type="button" onclick="closeModal()"
+            class="flex-1 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all">
+            Cancel
+        </button>
+        <button type="submit"
+            class="flex-1 py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-xl shadow-red-500/20">
+            Confirm Removal
+        </button>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Dead Stock Report | Pharmacy POS{% endblock %}
+{% block header_title %}Dead Stock (No Sales in 90 Days){% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-in fade-in duration-500">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Dead Stock Analysis</h2>
+            <p class="text-slate-500 font-medium text-sm">Items with zero velocity in the last 90 days.</p>
+        </div>
+
+        <form method="get" class="relative group">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <i data-lucide="search"
+                    class="w-5 h-5 text-slate-400 group-focus-within:text-accent-600 transition-colors"></i>
+            </div>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search slow items..."
+                class="block w-full md:w-80 pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all shadow-sm">
+        </form>
+    </div>
+
+    <div class="bg-amber-50 border border-amber-100 rounded-[2rem] p-6 flex items-start space-x-4">
+        <div class="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <i data-lucide="info" class="w-6 h-6"></i>
+        </div>
+        <div>
+            <h4 class="text-sm font-black text-amber-900 uppercase tracking-widest">Inventory Management Suggestion</h4>
+            <p class="text-sm text-amber-800 leading-relaxed mt-1">These items occupy shelf space without clinical
+                movement. Consider markdowns or discontinuation to optimize working capital.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-sm">
+        <table class="w-full text-left">
+            <thead>
+                <tr
+                    class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    <th class="px-8 py-6">Product details</th>
+                    <th class="px-6 py-6 text-center">Current stock</th>
+                    <th class="px-8 py-6 text-right">Unit Price (SDG)</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for drug in drugs %}
+                <tr class="hover:bg-slate-50/50 transition-colors group">
+                    <td class="px-8 py-5">
+                        <div class="font-bold text-slate-900">{{ drug.trade_name }}</div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{               drug.scientific_name }}</div>
+                    </td>
+                    <td class="px-6 py-5 text-center">
+                        <span class="px-3 py-1 bg-slate-100 rounded-lg text-sm font-bold text-slate-700">{{               drug.total_quantity }} units</span>
+                    </td>
+                    <td class="px-8 py-5 text-right font-black text-slate-900">
+                        SDG {{ drug.current_price|floatformat:0 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="px-8 py-32 text-center">
+                        <div class="flex flex-col items-center justify-center opacity-20">
+                            <i data-lucide="zap" class="w-16 h-16 mb-4"></i>
+                            <h4 class="text-xl font-black uppercase tracking-widest">Perfect Flow</h4>
+                            <p class="text-sm font-medium mt-2">Every item has moved within the last 90 days.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

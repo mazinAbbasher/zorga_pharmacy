@@ -1,0 +1,82 @@
+<div class="p-8">
+    <div class="flex items-center justify-between mb-8">
+        <h3 class="text-2xl font-black text-slate-800">{{ title }}</h3>
+        <button onclick="closeModal()"
+            class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+
+    <form hx-post="{% if drug %}{% url 'drugs:update' drug.pk %}{% else %}{% url 'drugs:create' %}{% endif %}"
+        hx-target="#modal-content" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Trade Name</label>
+                {{ form.trade_name }}
+                {% if form.trade_name.errors %}
+                <p class="text-xs font-bold text-red-500 pl-2">{{ form.trade_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Scientific Name</label>
+                {{ form.scientific_name }}
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Category</label>
+                {{ form.category }}
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Manufacturer</label>
+                {{ form.manufacturer }}
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Barcode / SKU</label>
+            {{ form.barcode }}
+        </div>
+
+        <div class="space-y-2 border-t border-slate-100 pt-6">
+            <p
+                class="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center">
+                <i data-lucide="info" class="w-4 h-4 mr-2"></i> Initial stock is recorded via the Purchase module.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Min. Stock Alert</label>
+                {{ form.minimum_stock_alert }}
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Current Sale Price</label>
+                {{ form.sale_price }}
+                <p class="text-[9px] text-slate-400 pl-2">Updates price for all active stock</p>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
+            <button type="button" onclick="closeModal()"
+                class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all">
+                Cancel
+            </button>
+            <button type="submit"
+                class="px-8 py-3 bg-accent-600 hover:bg-accent-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-accent-600/20 active:scale-95">
+                Save Product
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+    // Auto-focus first input
+    setTimeout(() => {
+        document.querySelector('#modal-content input').focus();
+    }, 100);
+</script>

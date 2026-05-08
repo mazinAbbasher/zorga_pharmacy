@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock & Inventory | PharmaLink{% endblock %}
+{% block header_title %}Stock Management{% endblock %}
+
+{% block content %}
+<div class="space-y-10 animate-in fade-in duration-500">
+    <!-- Top Summary Widgets -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div
+            class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm relative overflow-hidden group hover:border-red-200 transition-all duration-300">
+            <div
+                class="absolute top-0 right-0 w-24 h-24 bg-red-500/5 rounded-full -mr-12 -mt-12 group-hover:bg-red-500/10 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 mb-4">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Critical Low Stock</h4>
+                <div class="flex items-end space-x-2 mt-1">
+                    <span class="text-4xl font-black text-slate-900">{{ low_stock_count }}</span>
+                    <span class="text-xs font-bold text-slate-400 mb-1.5 uppercase">Products</span>
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm relative overflow-hidden group hover:border-amber-200 transition-all duration-300">
+            <div
+                class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full -mr-12 -mt-12 group-hover:bg-amber-500/10 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 mb-4">
+                    <i data-lucide="calendar-x" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Expiring Soon</h4>
+                <div class="flex items-end space-x-2 mt-1">
+                    <span class="text-4xl font-black text-slate-900">{{ expiring_soon_count }}</span>
+                    <span class="text-xs font-bold text-slate-400 mb-1.5 uppercase">Products</span>
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm relative overflow-hidden group hover:border-accent-200 transition-all duration-300">
+            <div
+                class="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full -mr-12 -mt-12 group-hover:bg-accent-500/10 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-accent-50 flex items-center justify-center text-accent-600 mb-4">
+                    <i data-lucide="package" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total SKU's</h4>
+                <div class="flex items-end space-x-2 mt-1">
+                    <span class="text-4xl font-black text-slate-900">{{ drugs|length }}</span>
+                    <span class="text-xs font-bold text-slate-400 mb-1.5 uppercase">Items</span>
+                </div>
+            </div>
+        </div>
+
+        <div
+            class="bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden group">
+            <div
+                class="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-12 -mt-12 group-hover:bg-white/10 transition-colors">
+            </div>
+            <div class="relative z-10">
+                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-4">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Action Center</h4>
+                <a href="{% url 'inventory:logs' %}"
+                    class="flex items-center space-x-2 mt-3 text-white group-hover:text-accent-400 transition-colors">
+                    <span class="text-sm font-bold uppercase tracking-wider">Stock History</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-sm">
+        <div
+            class="px-10 py-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-xl font-black text-slate-800">Master Stock Registry</h3>
+                <p class="text-sm font-medium text-slate-400 mt-1">Unified view of all drug levels, thresholds, and
+                    expiration timelines.</p>
+            </div>
+            <div class="flex items-center bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50">
+                <button
+                    class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-white shadow-sm text-accent-600">All
+                    Master</button>
+                <button
+                    class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors">Low
+                    Only</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        <th class="px-10 py-6 border-b border-slate-100">Product Specification</th>
+                        <th class="px-6 py-6 border-b border-slate-100">Inventory Status</th>
+                        <th class="px-6 py-6 border-b border-slate-100">Stock Integrity</th>
+                        <th class="px-6 py-6 border-b border-slate-100">Exp. Validation</th>
+                        <th class="px-10 py-6 border-b border-slate-100 text-right">Indicator</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for drug in drugs %}
+                    <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                        <td class="px-10 py-6">
+                            <div class="flex items-center space-x-4">
+                                <div
+                                    class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-accent-50 group-hover:text-accent-600 transition-colors shadow-sm">
+                                    <i data-lucide="beaker" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-900">{{ drug.trade_name }}</div>
+                                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        {{drug.barcode|default:"Internal-Ref" }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-6">
+                            <div class="flex flex-col space-y-1.5">
+                                <div class="flex items-end justify-between w-32">
+                                    <span
+                                        class="text-sm font-black {% if drug.is_low_stock %}text-red-600{% else %}text-slate-900{% endif %}">{{                     drug.total_quantity }} <span
+                                            class="text-[10px] text-slate-400 ml-0.5 font-bold">UNITS</span></span>
+                                </div>
+                                <div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full {% if drug.is_low_stock %}bg-red-500{% else %}bg-green-500{% endif %} transition-all duration-500"
+                                        style="width: {% if drug.total_quantity > 50 %}100{% else %}{{ drug.total_quantity|add:drug.total_quantity }}{% endif %}%">
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-6">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold text-slate-500 uppercase tracking-tighter">Min
+                                    Threshold</span>
+                                <span class="text-sm font-black text-slate-800">{{ drug.minimum_stock_alert }}
+                                    units</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-6">
+                            <div class="flex items-center space-x-2">
+                                <div
+                                    class="w-8 h-8 rounded-lg {% if drug.nearest_expiry_date <= near_expiry_date %}bg-amber-50 text-amber-600{% else %}bg-slate-100 text-slate-400{% endif %} flex items-center justify-center">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                </div>
+                                <div class="flex flex-col">
+                                    <span
+                                        class="text-xs font-black {% if drug.nearest_expiry_date <= near_expiry_date %}text-amber-600 animate-pulse{% else %}text-slate-900{% endif %}">{{                     drug.nearest_expiry_date|date:"M d, Y"|default:"N/A" }}</span>
+                                    {% if drug.nearest_expiry_date <= today %}<span
+                                        class="text-[9px] font-black text-red-500 uppercase tracking-tighter">
+                                        Expired</span>{% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-10 py-6 text-right">
+                            {% if drug.is_low_stock %}
+                            <span
+                                class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-2 animate-ping"></span>
+                                RESTOCK
+                            </span>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-green-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-2"></span>
+                                SECURE
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

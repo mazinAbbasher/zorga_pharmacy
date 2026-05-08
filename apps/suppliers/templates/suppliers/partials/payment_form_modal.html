@@ -1,0 +1,56 @@
+<div class="p-8">
+    <div class="flex items-center justify-between mb-8">
+        <div>
+            <h3 class="text-2xl font-black text-slate-900 tracking-tight">{{ title }}</h3>
+            <p class="text-sm font-medium text-slate-500">Record a payment for <b>{{ supplier.name }}</b></p>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
+            <i data-lucide="banknote" class="w-6 h-6"></i>
+        </div>
+    </div>
+
+    <form method="POST"
+        action="{% if payment %}{% url 'suppliers:update_payment' payment.id %}{% else %}{% url 'suppliers:record_payment' supplier.id %}{% endif %}"
+        {% if payment %}hx-post="{% url 'suppliers:update_payment' payment.id %}" {% else %}hx-post="{% url 'suppliers:record_payment' supplier.id %}" {% endif %} hx-target="#modal-content"
+        class="space-y-6">
+        {% csrf_token %}
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Amount (SDG)</label>
+                {{ form.amount }}
+            </div>
+            <div class="space-y-2">
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Payment
+                    Method</label>
+                {{ form.payment_mode }}
+            </div>
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Reference (Voucher #,
+                etc)</label>
+            {{ form.reference }}
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Notes</label>
+            {{ form.notes }}
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-4">
+            <button type="button" onclick="closeModal()"
+                class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
+                Cancel
+            </button>
+            <button type="submit"
+                class="px-8 py-3 bg-accent-600 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-accent-700 shadow-lg shadow-accent-600/20 transition-all">
+                {% if payment %}Update Payment{% else %}Record Payment{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+</script>

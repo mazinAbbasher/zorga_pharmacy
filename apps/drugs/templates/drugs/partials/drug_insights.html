@@ -1,0 +1,146 @@
+<div class="animate-in fade-in slide-in-from-top-2 duration-500">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Stock Analysis -->
+        <div class="lg:col-span-1 space-y-6">
+            <div>
+                <h4 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Stock Composition</h4>
+                <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-500 font-medium">Available Units</span>
+                        <span class="font-black text-slate-900">{{ drug.total_quantity }}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-500 font-medium">Expired Units</span>
+                        <span class="font-black text-red-500">{{ drug.expired_quantity }}</span>
+                    </div>
+                    <div class="h-px bg-slate-50"></div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-500 font-medium font-bold">Inventory Value</span>
+                        <span class="font-black text-accent-600">SDG {{ drug.total_inventory_value|floatformat:2}}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if drug.manufacturer %}
+            <div>
+                <h4 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Manufacturer Info</h4>
+                <div
+                    class="bg-slate-900 p-6 rounded-3xl shadow-xl shadow-slate-900/10 active:scale-[0.98] transition-all">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-white">
+                            <i data-lucide="factory" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p
+                                class="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">
+                                Produced By</p>
+                            <p class="text-white font-bold">{{ drug.manufacturer }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Details Column -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Batch Audit Log -->
+            <div>
+                <h4 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Batch Audit Log</h4>
+                <div
+                    class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden text-center lg:text-left">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr
+                                    class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                    <th class="px-6 py-4">Batch No.</th>
+                                    <th class="px-6 py-4">Quantity</th>
+                                    <th class="px-6 py-4">Expiry</th>
+                                    <th class="px-6 py-4">Unit Cost</th>
+                                    <th class="px-6 py-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                {% for batch in batches %}
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-6 py-4 font-black text-slate-900">{{ batch.batch_number }}</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="font-bold {% if batch.quantity == 0 %}text-slate-300{% else %}text-slate-700{% endif %}">
+                                            {{ batch.quantity }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="{% if batch.expiry_date < today %}text-red-500 font-bold{% elif batch.expiry_date <= soon %}text-amber-500 font-bold{% else %}text-slate-600{% endif %}">
+                                            {{ batch.expiry_date|date:"M d, Y" }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 font-mono text-slate-500 text-xs">SDG {{ batch.purchase_price}}</td>
+                                    <td class="px-6 py-4">
+                                        {% if batch.quantity == 0 %}
+                                        <span
+                                            class="text-[9px] font-black uppercase bg-slate-100 text-slate-400 px-2 py-0.5 rounded-md">Empty</span>
+                                        {% elif batch.expiry_date < today %} <span
+                                            class="text-[9px] font-black uppercase bg-red-100 text-red-600 px-2 py-0.5 rounded-md">
+                                            Expired</span>
+                                            {% else %}
+                                            <span
+                                                class="text-[9px] font-black uppercase bg-green-100 text-green-600 px-2 py-0.5 rounded-md">Active</span>
+                                            {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Stock Movements -->
+            {% if movements %}
+            <div>
+                <h4 class="text-sm font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Recent Stock Movements
+                </h4>
+                <div class="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead>
+                                <tr
+                                    class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                    <th class="px-6 py-4">Timestamp</th>
+                                    <!-- <th class="px-6 py-4">Type</th> -->
+                                    <th class="px-6 py-4">Quantity</th>
+                                    <th class="px-6 py-4">User</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-50">
+                                {% for movement in movements %}
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-6 py-4 text-slate-500 text-xs">{{ movement.timestamp|date:"M d, H:i"}}</td>
+                                    <!-- <td class="px-6 py-4">
+                                        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md 
+                                            {% if movement.type == 'IN' %}bg-green-100 text-green-600
+                                            {% elif movement.type == 'OUT' %}bg-blue-100 text-blue-600
+                                            {% elif movement.type == 'ADJUSTMENT' %}bg-amber-100 text-amber-600
+                                            {% else %}bg-slate-100 text-slate-600{% endif %}">
+                                            {{ movement.get_type_display }}
+                                        </span>
+                                    </td> -->
+                                    <td
+                                        class="px-6 py-4 font-bold {% if movement.quantity > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if movement.quantity > 0 %}+{% endif %}{{ movement.quantity }}
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-600 text-xs font-medium">{{movement.user.username|default:"System" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} | Pharmacy POS{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="card p-8">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="col-span-2">
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Trade Name</label>
+                    {% render_field form.trade_name class="input" placeholder="e.g. Panadol" %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Scientific Name</label>
+                    {% render_field form.scientific_name class="input" placeholder="e.g. Paracetamol" %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Barcode</label>
+                    {% render_field form.barcode class="input" placeholder="Scan or enter barcode" %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Manufacturer</label>
+                    {% render_field form.manufacturer class="input" placeholder="e.g. GSK" %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Category</label>
+                    {% render_field form.category class="input" %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Min Stock Alert</label>
+                    {% render_field form.minimum_stock_alert class="input" placeholder="10" %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Current Sale Price</label>
+                    {% render_field form.sale_price class="input" placeholder="0.00" %}
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
+                <a href="{% url 'drugs:list' %}" class="btn bg-slate-100 text-slate-700 hover:bg-slate-200">Cancel</a>
+                <button type="submit" class="btn btn-primary px-8">Save Drug</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

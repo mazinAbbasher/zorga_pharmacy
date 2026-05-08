@@ -1,0 +1,44 @@
+{% for category in categories %}
+<tr class="group hover:bg-slate-50/50 transition-all duration-200">
+    <td class="px-8 py-6">
+        <div class="flex items-center space-x-4">
+            <div
+                class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-accent-50 group-hover:text-accent-600 transition-colors">
+                <i data-lucide="tag" class="w-5 h-5"></i>
+            </div>
+            <span class="font-bold text-slate-900 uppercase tracking-tight">{{ category.name }}</span>
+        </div>
+    </td>
+    <td class="px-6 py-6">
+        <p class="text-sm font-medium text-slate-500 max-w-xs truncate">{{ category.description|default:"No description       provided" }}</p>
+    </td>
+    <td class="px-6 py-6 text-center">
+        <span
+            class="inline-flex items-center px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black text-slate-600 uppercase">
+            {{ category.drugs.count|default:"0" }} Drugs
+        </span>
+    </td>
+    <td class="px-8 py-6 text-right">
+        <div class="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button hx-get="{% url 'drugs:category_update' category.id %}" hx-target="#modal-content"
+                class="p-2 bg-slate-50 text-slate-400 hover:bg-accent-50 hover:text-accent-600 rounded-xl transition-all">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+            </button>
+            <button hx-get="{% url 'drugs:category_delete' category.id %}" hx-target="#modal-content"
+                class="p-2 bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="4" class="px-8 py-20 text-center text-slate-400 font-medium">
+        No categories found. Start by creating one.
+    </td>
+</tr>
+{% endfor %}
+
+<script>
+    lucide.createIcons();
+</script>
