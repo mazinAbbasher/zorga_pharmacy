@@ -100,7 +100,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Scales down page content for the desktop window (no-op unless DESKTOP_ZOOM
+    # is set). Last so it post-processes the final rendered HTML.
+    'core.middleware.DesktopZoomMiddleware',
 ]
+
+# Content zoom for the desktop window, e.g. '0.75'. Empty/“1” disables it.
+# The desktop launcher sets PHARMACY_ZOOM; the normal web app leaves it unset.
+DESKTOP_ZOOM = os.environ.get('PHARMACY_ZOOM', '')
 
 ROOT_URLCONF = 'config.urls'
 

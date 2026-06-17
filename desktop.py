@@ -63,6 +63,10 @@ def configure_environment() -> Path:
     os.environ["PHARMACY_DATA_DIR"] = str(data_dir)
     os.environ.setdefault("DJANGO_DEBUG", "false")
     os.environ.setdefault("DJANGO_SECRET_KEY", load_or_create_secret_key(data_dir))
+    # Content zoom for the desktop window (Windows display scaling makes the
+    # native window render larger than a browser). Lower = smaller; "1" = off.
+    # Change this default to your preferred size, e.g. "0.7" or "0.8".
+    os.environ.setdefault("PHARMACY_ZOOM", "0.75")
     return data_dir
 
 
@@ -151,7 +155,7 @@ def main() -> int:
         # fullscreen   : True  -> borderless kiosk mode (no title bar / controls).
         # resizable    : False -> lock the window to a fixed size.
         # Tweak the values below to taste.
-        window = webview.create_window(
+        webview.create_window(
             "Pharmacy System",
             url,
             width=1280,
@@ -161,24 +165,9 @@ def main() -> int:
             maximized=True,
             fullscreen=False,
         )
-
-        # --- Zoom / scaling ----------------------------------------------
-        # Windows display scaling makes the native window render larger than a
-        # browser. This shrinks the content to match (like pressing Ctrl+- in a
-        # browser). Lower = smaller. Change PHARMACY_ZOOM or the 0.8 default.
-        #   0.9 = slightly smaller, 0.8 = default, 0.67 = much smaller, 1 = off.
-        zoom = os.environ.get("PHARMACY_ZOOM", "0.8")
-        if zoom not in ("1", "1.0", ""):
-            def _apply_zoom():
-                try:
-                    window.evaluate_js(
-                        "document.documentElement.style.zoom = '%s'" % zoom
-                    )
-                except Exception:
-                    pass
-
-            # Re-apply on every full page load; HTMX partial swaps keep it.
-            window.events.loaded += _apply_zoom
+        # Note: content scaling/zoom is handled server-side by
+        # core.middleware.DesktopZoomMiddleware (driven by PHARMACY_ZOOM), so it
+        # applies reliably to every page without depending on JS timing.
 
         webview.start()
     except Exception:
