@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch Zorga Pharmacy as a desktop app (Linux/macOS).
+# Launch Pharmacy System as a desktop app (Linux/macOS).
 # Creates the virtualenv and installs dependencies on first run.
 set -euo pipefail
 cd "$(dirname "$0")"

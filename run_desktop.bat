@@ -1,5 +1,5 @@
 @echo off
-REM Launch Zorga Pharmacy as a desktop app (Windows).
+REM Launch Pharmacy System as a desktop app (Windows).
 REM Creates the virtualenv and installs dependencies on first run.
 REM Requires Python 3.10+ (3.12 recommended).
 setlocal

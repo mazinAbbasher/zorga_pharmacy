@@ -1,10 +1,10 @@
-# Build Zorga Pharmacy into a standalone Windows desktop app and place a
+# Build Pharmacy System into a standalone Windows desktop app and place a
 # shortcut on the Desktop. Run this in PowerShell from the project folder:
 #
 #   powershell -ExecutionPolicy Bypass -File build_windows.ps1
 #
 # Produces: dist\ZorgaPharmacy\ZorgaPharmacy.exe  (no console window)
-# and a "Zorga Pharmacy" shortcut on your Desktop.
+# and a "Pharmacy System" shortcut on your Desktop.
 #
 # Requires Python 3.10 or newer (3.12 recommended).
 
@@ -131,14 +131,14 @@ Write-Host "==> Building executable with PyInstaller..." -ForegroundColor Cyan
 & $venvPy -m PyInstaller --noconfirm desktop.spec
 Assert-LastExit "PyInstaller build"
 
-$exePath = Join-Path $PSScriptRoot "dist\ZorgaPharmacy\ZorgaPharmacy.exe"
+$exePath = Join-Path $PSScriptRoot "dist\PharmacySystem\PharmacySystem.exe"
 if (-not (Test-Path $exePath)) {
     throw "Build finished but $exePath was not created."
 }
 
 Write-Host "==> Creating Desktop shortcut..." -ForegroundColor Cyan
 $desktop = [Environment]::GetFolderPath("Desktop")
-$shortcutPath = Join-Path $desktop "Zorga Pharmacy.lnk"
+$shortcutPath = Join-Path $desktop "Pharmacy System.lnk"
 $wsh = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = $exePath
@@ -152,5 +152,5 @@ Write-Host "Done!" -ForegroundColor Green
 Write-Host "App:      $exePath"
 Write-Host "Shortcut: $shortcutPath"
 Write-Host ""
-Write-Host "You can copy the entire 'dist\ZorgaPharmacy' folder to the client PC"
-Write-Host "and double-click ZorgaPharmacy.exe (or the Desktop shortcut)."
+Write-Host "You can copy the entire 'dist\PharmacySystem' folder to the client PC"
+Write-Host "and double-click PharmacySystem.exe (or the Desktop shortcut)."

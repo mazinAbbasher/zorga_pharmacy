@@ -1,4 +1,4 @@
-# PyInstaller spec for the Zorga Pharmacy desktop app.
+# PyInstaller spec for the Pharmacy System desktop app.
 # Build with:  pyinstaller desktop.spec
 #
 # Produces a standalone executable that runs the Django app in a native window
@@ -88,7 +88,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="ZorgaPharmacy",
+    name="PharmacySystem",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -109,5 +109,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name="ZorgaPharmacy",
+    name="PharmacySystem",
 )

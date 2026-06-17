@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a standalone Zorga Pharmacy executable with PyInstaller.
+# Build a standalone Pharmacy System executable with PyInstaller.
 # Run on the OS you want to target (PyInstaller does not cross-compile).
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -18,4 +18,4 @@ echo "Building executable..."
 "$VENV/bin/pyinstaller" --noconfirm desktop.spec
 
 echo
-echo "Done. Executable is in: dist/ZorgaPharmacy"
+echo "Done. Executable is in: dist/PharmacySystem"

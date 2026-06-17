@@ -5,7 +5,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Pharmacy Management System{% endblock %}</title>
+    <title>{% block title %}Pharmacy System{% endblock %}</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{% static 'logo.png' %}">
     <!-- Google Fonts: Inter -->
     <link href="{% static 'vendors/inter/index.css' %}" rel="stylesheet">
 
@@ -52,14 +54,11 @@
 
 <body class="bg-gray-50 text-slate-900 font-sans antialiased" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <div class="flex h-screen overflow-hidden">
-        <!-- Sidebar -->
         <aside class="w-64 bg-primary-950 text-white flex-shrink-0 flex flex-col shadow-xl z-20">
             <div class="h-16 flex items-center px-6 border-b border-white/5">
                 <div class="flex items-center space-x-3">
-                    <div class="bg-accent-600 p-1.5 rounded-lg">
-                        <i data-lucide="cross" class="w-6 h-6 text-white"></i>
-                    </div>
-                    <h1 class="text-xl font-bold tracking-tight text-white">PharmaLink</h1>
+                    <img src="{% static 'logo.png' %}" class="w-8 h-8 rounded-lg object-contain bg-white p-0.5">
+                    <h1 class="text-xl font-black tracking-tight text-white">Pharmacy System</h1>
                 </div>
             </div>
 

@@ -1,4 +1,4 @@
-# Zorga Pharmacy — Windows Desktop Setup Guide
+# Pharmacy System — Windows Desktop Setup Guide
 
 This guide turns the project into a **real Windows desktop application**: the
 client double-clicks an icon, the app opens in its **own window** (not a web
@@ -15,11 +15,11 @@ use it on that machine or copy the result to the client's PC.
 
 ## What the client gets
 
-- A Desktop icon **"Zorga Pharmacy"**.
+- A Desktop icon **"Pharmacy System"**.
 - Double-click → the app opens in a clean native window.
 - No terminal, no browser, no internet.
 - All data (database, receipts, logs) is saved automatically on their PC in
-  `C:\Users\<name>\AppData\Local\ZorgaPharmacy`.
+  `C:\Users\<name>\AppData\Local\PharmacySystem`.
 
 ---
 
@@ -71,8 +71,8 @@ This produces a self-contained folder. **Python is NOT required on the client PC
 
 1. Open **PowerShell** and clone the repository:
    ```powershell
-   git clone <your-repo-url> zorga_pharmacy
-   cd zorga_pharmacy
+   git clone <your-repo-url> pharmacy_system
+   cd pharmacy_system
    ```
 
 2. Run the build script:
@@ -80,11 +80,11 @@ This produces a self-contained folder. **Python is NOT required on the client PC
    powershell -ExecutionPolicy Bypass -File build_windows.ps1
    ```
    This creates a virtual environment, installs everything, builds the app, and
-   places a **"Zorga Pharmacy"** shortcut on your Desktop. It takes a few minutes.
+   places a **"Pharmacy System"** shortcut on your Desktop. It takes a few minutes.
 
 3. When it finishes you'll have:
    ```
-   dist\ZorgaPharmacy\ZorgaPharmacy.exe   <- the application (no console)
+   dist\PharmacySystem\PharmacySystem.exe   <- the application (no console)
    ```
 
 4. **Test it:** double-click the Desktop shortcut (or the `.exe`). The app window
@@ -96,10 +96,10 @@ This produces a self-contained folder. **Python is NOT required on the client PC
 > signing certificate (optional).
 
 ### Deliver to the client PC
-- Copy the **entire `dist\ZorgaPharmacy` folder** to the client PC (USB stick or
-  network). Put it somewhere stable, e.g. `C:\ZorgaPharmacy`.
-- Create a Desktop shortcut on the client PC: right-click `ZorgaPharmacy.exe` →
-  **Send to → Desktop (create shortcut)**, then rename it to "Zorga Pharmacy".
+- Copy the **entire `dist\PharmacySystem` folder** to the client PC (USB stick or
+  network). Put it somewhere stable, e.g. `C:\PharmacySystem`.
+- Create a Desktop shortcut on the client PC: right-click `PharmacySystem.exe` →
+  **Send to → Desktop (create shortcut)**, then rename it to "Pharmacy System".
 - (Optional) Run the WebView2 installer from Part 1.3 if the window doesn't appear.
 
 That's it — the client now double-clicks the icon and uses the system fully offline.
@@ -121,10 +121,10 @@ requires Python to be installed on the machine, but is very reliable.
    - Right-click on the Desktop → **New → Shortcut**.
    - For the location, paste (adjust the path to your folder):
      ```
-     C:\path\to\zorga_pharmacy\.venv\Scripts\pythonw.exe C:\path\to\zorga_pharmacy\desktop.py
+     C:\path\to\pharmacy_system\.venv\Scripts\pythonw.exe C:\path\to\pharmacy_system\desktop.py
      ```
      `pythonw.exe` (with the **w**) runs with **no terminal window**.
-   - Name it "Zorga Pharmacy". Set **Start in** to the project folder.
+   - Name it "Pharmacy System". Set **Start in** to the project folder.
    - (Optional) Right-click the shortcut → Properties → **Change Icon** to pick
      `static\icon.ico`.
 
@@ -142,7 +142,7 @@ Double-clicking that shortcut opens the app in its native window, fully offline.
 ### Pin it / autostart
 - **Pin to Taskbar/Start:** right-click the `.exe` → Pin to Start / Taskbar.
 - **Start automatically at login:** press `Win + R`, type `shell:startup`, press
-  Enter, and copy the "Zorga Pharmacy" shortcut into that folder.
+  Enter, and copy the "Pharmacy System" shortcut into that folder.
 
 ---
 
@@ -153,7 +153,7 @@ Double-clicking that shortcut opens the app in its native window, fully offline.
   - To set different initial credentials, before first launch set environment
     variables `PHARMACY_ADMIN_USERNAME` and `PHARMACY_ADMIN_PASSWORD`.
 - **Where data lives (client PC):**
-  `C:\Users\<name>\AppData\Local\ZorgaPharmacy`
+  `C:\Users\<name>\AppData\Local\PharmacySystem`
   - `db.sqlite3` — all pharmacy data (drugs, sales, customers, ...)
   - `media\` — uploaded files
   - `pharmacy.log` — activity/error log
@@ -167,9 +167,9 @@ Double-clicking that shortcut opens the app in its native window, fully offline.
 | Symptom | Fix |
 | --- | --- |
 | App opens in a **browser** instead of a window | Install the WebView2 Runtime (Part 1.3). |
-| Nothing happens / it closes immediately | Check `...\AppData\Local\ZorgaPharmacy\startup-error.log` and `pharmacy.log`. |
+| Nothing happens / it closes immediately | Check `...\AppData\Local\PharmacySystem\startup-error.log` and `pharmacy.log`. |
 | SmartScreen blocks it | **More info → Run anyway** (unsigned in-house app). |
-| Antivirus quarantines the `.exe` | Add an exclusion for the `ZorgaPharmacy` folder (common with PyInstaller apps). |
+| Antivirus quarantines the `.exe` | Add an exclusion for the `PharmacySystem` folder (common with PyInstaller apps). |
 | `Could not find a version that satisfies the requirement Django==5.2.x` | Your Python is too old (e.g. 3.9). Install Python 3.10+ (Part 1.1), delete `.venv`, and re-run. |
 | "python is not recognized" during build | Reinstall Python with **Add to PATH** ticked (Part 1.1). |
 | Build error about a missing module | Run the build again; ensure `pip install -r requirements-desktop.txt` succeeded. |

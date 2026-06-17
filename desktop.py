@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Desktop launcher for Zorga Pharmacy.
+"""Desktop launcher for Pharmacy System.
 
 Runs the Django application as a self-contained desktop program:
 
@@ -21,7 +21,7 @@ import threading
 import time
 from pathlib import Path
 
-APP_NAME = "ZorgaPharmacy"
+APP_NAME = "PharmacySystem"
 HOST = "127.0.0.1"
 
 
@@ -137,14 +137,49 @@ def main() -> int:
         print("Error: the application server did not start.", file=sys.stderr)
         return 1
 
-    print(f"Zorga Pharmacy is running. Data directory: {data_dir}")
+    print(f"Pharmacy System is running. Data directory: {data_dir}")
     print(f"Open {url} if a window does not appear.")
 
     # Prefer a native desktop window; fall back to the default web browser.
     try:
         import webview  # pywebview
 
-        webview.create_window("Zorga Pharmacy", url, width=1280, height=820)
+        # --- Window size & behaviour -------------------------------------
+        # width/height : the window's restored (non-maximized) size in pixels.
+        # min_size     : smallest the user can shrink it to (keeps layout intact).
+        # maximized    : True  -> open filling the screen (recommended for POS).
+        # fullscreen   : True  -> borderless kiosk mode (no title bar / controls).
+        # resizable    : False -> lock the window to a fixed size.
+        # Tweak the values below to taste.
+        window = webview.create_window(
+            "Pharmacy System",
+            url,
+            width=1280,
+            height=820,
+            min_size=(1024, 700),
+            resizable=True,
+            maximized=True,
+            fullscreen=False,
+        )
+
+        # --- Zoom / scaling ----------------------------------------------
+        # Windows display scaling makes the native window render larger than a
+        # browser. This shrinks the content to match (like pressing Ctrl+- in a
+        # browser). Lower = smaller. Change PHARMACY_ZOOM or the 0.8 default.
+        #   0.9 = slightly smaller, 0.8 = default, 0.67 = much smaller, 1 = off.
+        zoom = os.environ.get("PHARMACY_ZOOM", "0.8")
+        if zoom not in ("1", "1.0", ""):
+            def _apply_zoom():
+                try:
+                    window.evaluate_js(
+                        "document.documentElement.style.zoom = '%s'" % zoom
+                    )
+                except Exception:
+                    pass
+
+            # Re-apply on every full page load; HTMX partial swaps keep it.
+            window.events.loaded += _apply_zoom
+
         webview.start()
     except Exception:
         import webbrowser
@@ -177,14 +212,14 @@ def _report_fatal_error(exc: BaseException) -> None:
         location = "(could not write crash log)"
 
     message = (
-        "Zorga Pharmacy failed to start.\n\n"
+        "Pharmacy System failed to start.\n\n"
         f"{exc}\n\nDetails were written to:\n{location}"
     )
     if sys.platform.startswith("win"):
         try:
             import ctypes
 
-            ctypes.windll.user32.MessageBoxW(None, message, "Zorga Pharmacy", 0x10)
+            ctypes.windll.user32.MessageBoxW(None, message, "Pharmacy System", 0x10)
         except Exception:
             pass
     print(message, file=sys.stderr)

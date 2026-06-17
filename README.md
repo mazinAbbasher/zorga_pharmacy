@@ -1,4 +1,4 @@
-# Zorga Pharmacy
+# Pharmacy System
 
 A pharmacy management system (inventory, point-of-sale, purchases, suppliers,
 customers, reporting) built with Django. It runs as a normal web application for
@@ -72,9 +72,9 @@ in your browser instead.
 
 Per-user data directory:
 
-- Linux: `~/.local/share/ZorgaPharmacy`
-- macOS: `~/Library/Application Support/ZorgaPharmacy`
-- Windows: `%LOCALAPPDATA%\ZorgaPharmacy`
+- Linux: `~/.local/share/PharmacySystem`
+- macOS: `~/Library/Application Support/PharmacySystem`
+- Windows: `%LOCALAPPDATA%\PharmacySystem`
 
 ### Building a standalone executable
 
@@ -82,7 +82,7 @@ Run on the OS you are targeting (PyInstaller does not cross-compile):
 
 ```bash
 ./build_desktop.sh        # Linux/macOS, uses desktop.spec
-# result: dist/ZorgaPharmacy
+# result: dist/PharmacySystem
 ```
 
 **Windows:** see the step-by-step [WINDOWS_DESKTOP_GUIDE.md](WINDOWS_DESKTOP_GUIDE.md)
