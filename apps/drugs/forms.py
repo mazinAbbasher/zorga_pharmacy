@@ -11,11 +11,18 @@ class DrugForm(forms.ModelForm):
             'barcode', 'minimum_stock_alert'
         ]
 
+    def clean_barcode(self):
+        # Normalise to a trimmed value, and store an empty barcode as NULL so
+        # that multiple products without a barcode don't collide on the unique
+        # constraint (empty strings would).
+        barcode = (self.cleaned_data.get('barcode') or '').strip()
+        return barcode or None
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.fields['sale_price'].initial = self.instance.current_price
-            
+
         for field_name, field in self.fields.items():
             field.widget.attrs.update({
                 'class': 'block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-[1.25rem] text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all',

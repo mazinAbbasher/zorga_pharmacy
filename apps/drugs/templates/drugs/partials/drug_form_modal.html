@@ -38,7 +38,18 @@
 
         <div class="space-y-2">
             <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Barcode / SKU</label>
-            {{ form.barcode }}
+            <div class="flex items-stretch gap-2">
+                <div class="flex-1">{{ form.barcode }}</div>
+                <button type="button" onclick="scanIntoBarcode()"
+                    class="shrink-0 flex items-center gap-2 px-4 rounded-[1.25rem] bg-accent-50 text-accent-700 hover:bg-accent-100 border border-accent-200 text-sm font-bold transition-all active:scale-95"
+                    title="Scan barcode with camera or USB scanner">
+                    <i data-lucide="scan-line" class="w-5 h-5"></i>
+                    <span class="hidden sm:inline">Scan</span>
+                </button>
+            </div>
+            {% if form.barcode.errors %}
+            <p class="text-xs font-bold text-red-500 pl-2">{{ form.barcode.errors.0 }}</p>
+            {% endif %}
         </div>
 
         <div class="space-y-2 border-t border-slate-100 pt-6">
@@ -79,4 +90,17 @@
     setTimeout(() => {
         document.querySelector('#modal-content input').focus();
     }, 100);
+
+    // Scan a barcode (camera or USB scanner) straight into the SKU field.
+    function scanIntoBarcode() {
+        if (!window.PharmaScanner) return;
+        PharmaScanner.open({
+            title: 'Scan medicine barcode',
+            continuous: false,
+            onScan: function (code) {
+                const input = document.getElementById('id_barcode');
+                if (input) { input.value = code; input.focus(); }
+            }
+        });
+    }
 </script>

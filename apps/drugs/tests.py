@@ -3,8 +3,42 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 from .models import Drug, Category, Batch
+from .forms import DrugForm
 from users.models import User
 from decimal import Decimal
+
+
+class DrugBarcodeFormTests(TestCase):
+    def setUp(self):
+        self.category = Category.objects.create(name="General")
+
+    def _data(self, **over):
+        data = {
+            "trade_name": "Item",
+            "category": self.category.id,
+            "barcode": "",
+            "minimum_stock_alert": 10,
+        }
+        data.update(over)
+        return data
+
+    def test_empty_barcode_saved_as_null(self):
+        form = DrugForm(data=self._data(trade_name="A", barcode="   "))
+        self.assertTrue(form.is_valid(), form.errors)
+        drug = form.save()
+        self.assertIsNone(drug.barcode)
+
+    def test_two_products_without_barcode_do_not_collide(self):
+        for name in ("A", "B"):
+            form = DrugForm(data=self._data(trade_name=name, barcode=""))
+            self.assertTrue(form.is_valid(), form.errors)
+            form.save()
+        self.assertEqual(Drug.objects.filter(barcode__isnull=True).count(), 2)
+
+    def test_barcode_is_trimmed(self):
+        form = DrugForm(data=self._data(barcode="  ABC-123  "))
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.save().barcode, "ABC-123")
 
 class InventoryTestCase(TestCase):
     def setUp(self):

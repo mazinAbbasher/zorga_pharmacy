@@ -34,14 +34,14 @@ def index(request):
 @login_required
 def search_drugs(request):
     """HTMX: Search for drugs in real-time"""
-    query = request.GET.get('q', '')
+    query = request.GET.get('q', '').strip()
     if len(query) < 2:
         return render(request, 'pos/partials/search_results.html', {'drugs': []})
-    
+
     drugs = Drug.objects.filter(
         Q(trade_name__icontains=query) |
         Q(scientific_name__icontains=query) |
-        Q(barcode=query)
+        Q(barcode__iexact=query)
     ).distinct()[:10]
     
     return render(request, 'pos/partials/search_results.html', {'drugs': drugs})
@@ -49,12 +49,12 @@ def search_drugs(request):
 @login_required
 def add_to_cart(request):
     """HTMX: Add a drug to the session cart"""
-    barcode = request.POST.get('barcode')
+    barcode = (request.POST.get('barcode') or '').strip()
     drug_id = request.POST.get('drug_id')
-    
+
     drug = None
     if barcode:
-        drug = Drug.objects.filter(barcode=barcode).first()
+        drug = Drug.objects.filter(barcode__iexact=barcode).first()
         if not drug:
             # Fallback to exact trade name match if they typed it manually
             drug = Drug.objects.filter(trade_name__iexact=barcode).first()

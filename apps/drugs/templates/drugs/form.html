@@ -23,7 +23,14 @@
 
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Barcode</label>
-                    {% render_field form.barcode class="input" placeholder="Scan or enter barcode" %}
+                    <div class="flex items-stretch gap-2">
+                        <div class="flex-1">{% render_field form.barcode class="input" placeholder="Scan or enter barcode" %}</div>
+                        <button type="button" onclick="scanIntoBarcode()"
+                            class="shrink-0 flex items-center gap-2 px-4 rounded-xl bg-accent-50 text-accent-700 hover:bg-accent-100 border border-accent-200 text-sm font-bold transition-all active:scale-95"
+                            title="Scan barcode with camera or USB scanner">
+                            <i data-lucide="scan-line" class="w-5 h-5"></i><span class="hidden sm:inline">Scan</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div>
@@ -54,4 +61,20 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function scanIntoBarcode() {
+        if (!window.PharmaScanner) return;
+        PharmaScanner.open({
+            title: 'Scan medicine barcode',
+            continuous: false,
+            onScan: function (code) {
+                const input = document.getElementById('id_barcode');
+                if (input) { input.value = code; input.focus(); }
+            }
+        });
+    }
+</script>
 {% endblock %}

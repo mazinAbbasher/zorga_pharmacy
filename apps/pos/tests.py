@@ -66,6 +66,24 @@ class CheckoutFlowTests(TestCase):
         self.assertEqual(self.drug.total_quantity, 20)
         self.assertTrue(sale.is_refunded)
 
+    def test_add_to_cart_by_barcode(self):
+        self.drug.barcode = "5901234123457"
+        self.drug.save()
+        r = self.client.post("/pos/add-to-cart/", {"barcode": "5901234123457"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.client.session["cart"].get(str(self.drug.id), {}).get("quantity"), 1)
+
+    def test_add_to_cart_barcode_is_trimmed_and_case_insensitive(self):
+        self.drug.barcode = "AbC123"
+        self.drug.save()
+        self.client.post("/pos/add-to-cart/", {"barcode": "  abc123  "})
+        self.assertIn(str(self.drug.id), self.client.session["cart"])
+
+    def test_add_to_cart_unknown_barcode_is_handled(self):
+        r = self.client.post("/pos/add-to-cart/", {"barcode": "does-not-exist"})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn(str(self.drug.id), self.client.session.get("cart", {}))
+
     def test_cannot_oversell_beyond_stock(self):
         self.client.post("/pos/add-to-cart/", {"drug_id": self.drug.id})
         self.client.post(

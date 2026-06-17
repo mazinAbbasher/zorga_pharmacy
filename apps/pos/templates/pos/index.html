@@ -18,9 +18,6 @@
                     class="absolute top-0 right-0 w-64 h-64 bg-accent-600/10 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none">
                 </div>
 
-                <div id="qr-reader"
-                    class="hidden mb-6 rounded-3xl overflow-hidden border-4 border-accent-600/50 shadow-2xl"></div>
-
                 <div class="relative z-10 flex flex-col md:flex-row items-stretch gap-4">
                     <div class="relative flex-1 group/input">
                         <div class="absolute inset-y-0 left-0 pl-7 flex items-center pointer-events-none">
@@ -45,11 +42,11 @@
                     </div>
 
                     <div class="flex items-center gap-3">
-                        <button type="button" onclick="toggleScanner()" id="scanner-btn"
+                        <button type="button" onclick="openPosScanner()" id="scanner-btn"
                             class="bg-white/5 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 px-8 py-6 rounded-2xl transition-all flex items-center space-x-4 border border-white/10 group/btn shadow-lg hover:shadow-emerald-500/10">
-                            <i data-lucide="scan"
+                            <i data-lucide="scan-line"
                                 class="w-7 h-7 group-hover/btn:scale-125 transition-transform duration-300"></i>
-                            <span class="text-xs font-black uppercase tracking-[0.3em]">Scan QR</span>
+                            <span class="text-xs font-black uppercase tracking-[0.3em]">Scan</span>
                         </button>
 
                         <form id="pos-barcode-form" hx-post="{% url 'pos:add_to_cart' %}" hx-target="#cart-container"
@@ -164,21 +161,6 @@
 {% block extra_js %}
 
 <script>
-    // Audio Context for Scanner Beep
-    let audioCtx = null;
-    function playBeep() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
-        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.1);
-    }
-
     // Real-time Billing Updates
     function updateTotals() {
         const subtotalEl = document.getElementById('subtotal-val');
@@ -219,18 +201,25 @@
         const resultsList = document.getElementById('search-results-list');
         const activeItem = document.activeElement;
 
-        // Handle Enter key for search input regardless of results dropdown
+        // Enter in the search box: if the results dropdown is showing, add the
+        // first (most relevant) match; otherwise treat the text as a barcode /
+        // exact name (also how a USB scanner that types into the box behaves).
         if (e.key === 'Enter' && activeItem === searchInput) {
             e.preventDefault();
-            if (searchInput.value.trim().length > 0) {
+            const firstResult = document.querySelector('.search-result-item');
+            if (firstResult) {
+                firstResult.click();
+                return;
+            }
+            const value = searchInput.value.trim();
+            if (value.length > 0) {
                 const hiddenInput = document.getElementById('hidden-barcode-input');
                 if (hiddenInput) {
-                    hiddenInput.value = searchInput.value.trim();
+                    hiddenInput.value = value;
                     htmx.trigger("#pos-barcode-form", "submit");
                     searchInput.value = '';
-                    if (document.getElementById('search-results')) {
-                        document.getElementById('search-results').innerHTML = '';
-                    }
+                    const sr = document.getElementById('search-results');
+                    if (sr) sr.innerHTML = '';
                 }
             }
             return;
@@ -284,59 +273,24 @@
         }
     });
 
-    // QR Scanner Implementation
-    let html5QrCode = null;
-
-    async function toggleScanner() {
-        const reader = document.getElementById('qr-reader');
-        const btn = document.getElementById('scanner-btn');
-
-        if (reader.classList.contains('hidden')) {
-            reader.classList.remove('hidden');
-            btn.classList.add('bg-red-600', 'text-white', 'scale-105');
-            btn.classList.remove('bg-white/5', 'text-emerald-400');
-            btn.innerHTML = '<i data-lucide="x" class="w-7 h-7"></i><span class="text-xs font-black uppercase tracking-[0.3em]">Stop Scan</span>';
-            lucide.createIcons();
-            startScanner();
-        } else {
-            stopScanner();
-            reader.classList.add('hidden');
-            btn.classList.remove('bg-red-600', 'text-white', 'scale-105');
-            btn.classList.add('bg-white/5', 'text-emerald-400');
-            btn.innerHTML = '<i data-lucide="scan" class="w-7 h-7"></i><span class="text-xs font-black uppercase tracking-[0.3em]">Scan QR</span>';
-            lucide.createIcons();
+    // QR / Barcode camera scanner — uses the shared PharmaScanner overlay.
+    // Continuous mode lets the cashier scan several items in a row; each decoded
+    // code is submitted to the cart via the hidden barcode form.
+    function submitBarcode(code) {
+        const hiddenInput = document.getElementById('hidden-barcode-input');
+        if (hiddenInput) {
+            hiddenInput.value = code;
+            htmx.trigger("#pos-barcode-form", "submit");
         }
     }
 
-    function startScanner() {
-        html5QrCode = new Html5Qrcode("qr-reader");
-        const config = { fps: 15, qrbox: { width: 300, height: 300 } };
-
-        html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
-            playBeep();
-            const hiddenInput = document.getElementById('hidden-barcode-input');
-            if (hiddenInput) {
-                hiddenInput.value = decodedText;
-                htmx.trigger("#pos-barcode-form", "submit");
-            }
-            toggleScanner();
+    function openPosScanner() {
+        if (!window.PharmaScanner) return;
+        PharmaScanner.open({
+            title: 'Scan to add item',
+            continuous: true,
+            onScan: submitBarcode,
         });
-    }
-
-    function stopScanner() {
-        if (html5QrCode) {
-            try {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                }).catch((err) => {
-                    console.error(err);
-                    try { html5QrCode.clear(); } catch(e) {}
-                });
-            } catch (err) {
-                console.error("Scanner wasn't running", err);
-                try { html5QrCode.clear(); } catch(e) {}
-            }
-        }
     }
 
     document.body.addEventListener('htmx:afterSwap', (e) => {
