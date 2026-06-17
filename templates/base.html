@@ -154,7 +154,7 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold truncate">{{ user.get_full_name|default:user.username }}</p>
-                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{{ user.role }}</p>
+                        <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest">{{ user.get_role_display }}</p>
                     </div>
                 </div>
                 <form action="{% url 'logout' %}" method="post">

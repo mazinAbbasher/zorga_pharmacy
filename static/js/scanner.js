@@ -83,9 +83,8 @@
 
         var el = document.createElement("div");
         el.id = "pharma-scanner-overlay";
-        el.className = "hidden";
         el.style.cssText =
-            "position:fixed;inset:0;z-index:200;display:flex;align-items:center;" +
+            "position:fixed;inset:0;z-index:200;display:none;align-items:center;" +
             "justify-content:center;padding:1rem;background:rgba(15,23,42,.65);" +
             "backdrop-filter:blur(6px);";
 
@@ -310,7 +309,7 @@
 
             var el = buildOverlay();
             el.querySelector("#pharma-scanner-title").textContent = opts.title || "Scan Barcode";
-            el.classList.remove("hidden");
+            el.style.display = "flex";
             setStatus("", false);
 
             // Focus manual input so a USB (keyboard-wedge) scanner works instantly.
@@ -322,11 +321,11 @@
 
         close: function () {
             stopCamera();
-            if (state.overlay) state.overlay.classList.add("hidden");
+            if (state.overlay) state.overlay.style.display = "none";
         },
 
         isOpen: function () {
-            return !!(state.overlay && !state.overlay.classList.contains("hidden"));
+            return !!(state.overlay && state.overlay.style.display !== "none");
         },
     };
 
