@@ -7,7 +7,7 @@
 <div class="grid grid-cols-12 gap-5 h-[calc(100vh-8rem)] min-h-0">
 
     <!-- ============== LEFT: Search + Cart ============== -->
-    <div class="col-span-12 lg:col-span-8 flex flex-col gap-4 h-full min-h-0">
+    <div class="col-span-12 lg:col-span-9 flex flex-col gap-4 h-full min-h-0">
 
         <!-- Search / Scan bar -->
         <div id="scan-bar" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 transition-shadow">
@@ -55,90 +55,70 @@
         </div>
     </div>
 
-    <!-- Right Column: Billing & Customer -->
-    <div class="col-span-12 lg:col-span-4 h-full min-h-0 flex flex-col">
+    <!-- Right Column: Billing & Customer (compact) -->
+    <div class="col-span-12 lg:col-span-3 h-full min-h-0 flex flex-col">
         <div
-            class="bg-white rounded-[2.5rem] border border-slate-200/60 h-full flex flex-col shadow-2xl shadow-slate-200/50 overflow-hidden">
-            <div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                    <h3 class="text-2xl font-black text-slate-900 tracking-tight">Checkout</h3>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Order Details</p>
-                </div>
-                <div
-                    class="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center">
-                    <i data-lucide="receipt-text" class="w-6 h-6 text-accent-600"></i>
+            class="bg-white rounded-2xl border border-slate-200/60 h-full flex flex-col shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 class="text-base font-black text-slate-900 tracking-tight">Checkout</h3>
+                <div class="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-200 flex items-center justify-center">
+                    <i data-lucide="receipt-text" class="w-4 h-4 text-accent-600"></i>
                 </div>
             </div>
 
             <form action="{% url 'pos:checkout' %}" method="post" id="checkout-form"
-                class="flex-1 flex flex-col px-10 py-8 space-y-8 min-h-0 overflow-y-auto custom-scrollbar">
+                class="flex-1 flex flex-col px-4 py-4 min-h-0 overflow-y-auto custom-scrollbar">
                 {% csrf_token %}
 
-                <div class="space-y-8">
+                <div class="space-y-4">
                     <!-- Customer Selection -->
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center gap-2">
                         <div class="relative flex-1 group">
                             <select name="customer_id" id="customer-select"
-                                class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all appearance-none cursor-pointer">
+                                class="block w-full pl-3 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all appearance-none cursor-pointer">
                                 <option value="">Walk-in Customer</option>
                                 {% for customer in customers %}
                                 <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.phone_number|default:"No Phone" }})</option>
                                 {% endfor %}
                             </select>
-                            <div
-                                class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none text-slate-400 group-hover:text-accent-600 transition-colors">
-                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
-                            </div>
+                            <i data-lucide="chevron-down" class="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
                         </div>
                         <button type="button" hx-get="{% url 'customers:create' %}?from_pos=true"
                             hx-target="#modal-content"
-                            class="p-4 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-2xl border border-accent-200 transition-all active:scale-90 shadow-sm shadow-accent-600/10 group/add"
+                            class="p-2.5 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-xl border border-accent-200 transition-all active:scale-90"
                             title="Quick Register Customer">
-                            <i data-lucide="user-plus"
-                                class="w-6 h-6 transition-transform group-hover/add:scale-110"></i>
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
                         </button>
                     </div>
 
                     <!-- Payment Method -->
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Payment
-                            Method</label>
-                        <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-0.5">Payment Method</label>
+                        <div class="grid grid-cols-2 gap-2">
                             {% for method, icon, label in payment_options %}
                             <label
-                                class="relative flex flex-col items-center justify-center p-5 border-2 border-slate-100 rounded-3xl cursor-pointer hover:bg-slate-50 transition-all group has-[:checked]:border-accent-600 has-[:checked]:bg-accent-50/50 has-[:checked]:shadow-lg has-[:checked]:shadow-accent-600/5">
+                                class="relative flex items-center gap-2 px-3 py-2.5 border-2 border-slate-100 rounded-xl cursor-pointer hover:bg-slate-50 transition-all group has-[:checked]:border-accent-600 has-[:checked]:bg-accent-50/50">
                                 <input type="radio" name="payment_method" value="{{ method }}" class="hidden" {% if method == 'CASH' %}checked{% endif %}>
-                                <div
-                                    class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mb-3 group-hover:bg-white group-has-[:checked]:bg-white group-has-[:checked]:shadow-sm transition-all">
-                                    <i data-lucide="{{ icon }}"
-                                        class="w-6 h-6 text-slate-400 group-hover:text-accent-600 group-has-[:checked]:text-accent-600 transition-colors"></i>
-                                </div>
-                                <span
-                                    class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-900 group-has-[:checked]:text-accent-950">{{label}}</span>
+                                <i data-lucide="{{ icon }}" class="w-4 h-4 text-slate-400 group-has-[:checked]:text-accent-600 transition-colors shrink-0"></i>
+                                <span class="text-[11px] font-bold text-slate-500 group-has-[:checked]:text-accent-950 truncate">{{ label }}</span>
                             </label>
                             {% endfor %}
                         </div>
                     </div>
 
                     <!-- Discount Section -->
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Special
-                            Discount</label>
-                        <div class="relative group">
-                            <div
-                                class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-red-500/50 group-focus-within:text-red-500 transition-colors">
-                                <i data-lucide="tag" class="w-5 h-5"></i>
-                            </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-0.5">Special Discount</label>
+                        <div class="relative">
+                            <i data-lucide="tag" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-red-400 pointer-events-none"></i>
                             <input type="number" name="discount" id="discount-input" step="1" min="0" value="0"
-                                class="block w-full pl-12 pr-6 py-4 bg-red-50/20 border border-red-100 rounded-2xl text-lg font-black text-red-700 focus:ring-4 focus:ring-red-500/10 focus:border-red-400 transition-all placeholder:text-red-300">
-                            <div class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
-                                <span class="text-[10px] font-black text-red-300 uppercase">SDG</span>
-                            </div>
+                                class="block w-full pl-9 pr-12 py-2.5 bg-red-50/30 border border-red-100 rounded-xl text-base font-bold text-red-700 focus:ring-4 focus:ring-red-500/10 focus:border-red-400 transition-all">
+                            <span class="text-[10px] font-black text-red-300 uppercase absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">SDG</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-auto pt-10" id="cart-summary">
+                <div class="mt-auto pt-4" id="cart-summary">
                     {% include 'pos/partials/cart_summary_content.html' %}
                 </div>
             </form>
