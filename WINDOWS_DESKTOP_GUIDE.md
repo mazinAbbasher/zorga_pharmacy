@@ -25,14 +25,22 @@ use it on that machine or copy the result to the client's PC.
 
 ## Part 1 — One-time prerequisites (build laptop)
 
-### 1.1 Install Python
-1. Download Python 3.12 (or newer) from <https://www.python.org/downloads/windows/>.
+### 1.1 Install Python (3.10 or newer — required)
+> **This project needs Python 3.10+ (3.12 recommended). Python 3.9 or older will
+> NOT work** — Django 5.2 refuses to install on it, which is the cause of the
+> `Could not find a version that satisfies the requirement Django` error.
+
+1. Download Python 3.12 from <https://www.python.org/downloads/windows/>.
 2. Run the installer and **tick "Add python.exe to PATH"** before clicking Install.
-3. Verify: open **PowerShell** and run
+3. Verify in **PowerShell**:
    ```powershell
-   python --version
+   py -3.12 --version
    ```
-   You should see `Python 3.12.x`.
+   You should see `Python 3.12.x`. (The build script auto-detects the newest
+   installed Python via the `py` launcher, so an older `python` left on PATH is
+   fine — but if you previously ran the build with Python 3.9, delete the old
+   environment first: `Remove-Item -Recurse -Force .venv`. The script also does
+   this for you automatically.)
 
 ### 1.2 Install Git (to clone the repo)
 - Download from <https://git-scm.com/download/win> and install with defaults.
@@ -155,6 +163,7 @@ Double-clicking that shortcut opens the app in its native window, fully offline.
 | Nothing happens / it closes immediately | Check `...\AppData\Local\ZorgaPharmacy\startup-error.log` and `pharmacy.log`. |
 | SmartScreen blocks it | **More info → Run anyway** (unsigned in-house app). |
 | Antivirus quarantines the `.exe` | Add an exclusion for the `ZorgaPharmacy` folder (common with PyInstaller apps). |
+| `Could not find a version that satisfies the requirement Django==5.2.x` | Your Python is too old (e.g. 3.9). Install Python 3.10+ (Part 1.1), delete `.venv`, and re-run. |
 | "python is not recognized" during build | Reinstall Python with **Add to PATH** ticked (Part 1.1). |
 | Build error about a missing module | Run the build again; ensure `pip install -r requirements-desktop.txt` succeeded. |
 | Forgot admin password | Delete `db.sqlite3` to reset to a fresh database (⚠️ erases all data), or ask a developer to reset it. |
