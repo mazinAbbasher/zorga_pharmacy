@@ -1,60 +1,46 @@
 {% if drugs %}
 <div id="search-results-list"
-    class="absolute z-50 w-full mt-4 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden max-h-[30rem] overflow-y-auto custom-scrollbar animate-in slide-in-from-top-4 duration-300"
+    class="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200 overflow-hidden max-h-[26rem] overflow-y-auto custom-scrollbar animate-in slide-in-from-top-2 duration-200"
     role="listbox">
-    <div
-        class="p-3 bg-slate-50/80 border-b border-slate-100 uppercase tracking-[0.3em] text-[9px] font-black text-slate-400 pl-6">
-        Smart Results
-    </div>
     {% for drug in drugs %}
-    <div class="search-result-item p-5 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-all cursor-pointer group flex items-center justify-between outline-none focus:bg-accent-50/50"
+    <div class="search-result-item flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-50 last:border-0 cursor-pointer outline-none hover:bg-accent-50/60 focus:bg-accent-50 transition-colors"
         role="option" tabindex="0" id="drug-{{ drug.id }}" data-drug-id="{{ drug.id }}"
-        hx-post="{% url 'pos:add_to_cart' %}" hx-vals='{"drug_id": "{{ drug.id }}"}' hx-target="#cart-container"
-        hx-on::after-request="
-            document.getElementById('pos-search-input').value = ''; 
-            document.getElementById('search-results').innerHTML = '';
-            document.getElementById('pos-search-input').focus();
-        ">
-        <div class="flex items-center space-x-5">
-            <div
-                class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-accent-600 group-hover:text-white group-hover:rotate-12 transition-all duration-500">
-                <i data-lucide="pill" class="w-6 h-6"></i>
+        hx-post="{% url 'pos:add_to_cart' %}" hx-vals='{"drug_id": "{{ drug.id }}"}' hx-target="#cart-container">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-100 text-slate-500 grid place-items-center font-extrabold">
+                {{ drug.trade_name|first|upper }}
             </div>
-            <div class="flex flex-col">
-                <span
-                    class="text-base font-black text-slate-900 group-hover:text-accent-600 transition-colors tracking-tight">
-                    {{ drug.trade_name }}
-                </span>
-                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">{{ drug.scientific_name }}</span>
+            <div class="min-w-0">
+                <div class="font-bold text-slate-900 truncate">{{ drug.trade_name }}</div>
+                <div class="text-xs text-slate-400 font-medium truncate">
+                    {{ drug.scientific_name|default:drug.barcode|default:"—" }}
+                </div>
             </div>
         </div>
-        <div class="text-right">
-            <div class="text-lg font-black text-accent-600 tracking-tight">SDG {{ drug.current_price|floatformat:0 }}
-            </div>
-            <div class="flex items-center justify-end space-x-2 mt-1">
-                <span
-                    class="w-1.5 h-1.5 rounded-full {% if drug.total_quantity < 10 %}bg-red-500 animate-pulse{% else %}bg-emerald-500{% endif %}"></span>
-                <span
-                    class="text-[10px] font-black {% if drug.total_quantity < 10 %}text-red-500{% else %}text-emerald-500{% endif %} uppercase tracking-widest">
-                    {{ drug.total_quantity }} in stock
-                </span>
-            </div>
+        <div class="text-right shrink-0">
+            <div class="text-sm font-extrabold text-slate-900">SDG {{ drug.current_price|floatformat:0 }}</div>
+            {% if drug.total_quantity <= 0 %}
+            <div class="text-[11px] font-bold text-red-500">Out of stock</div>
+            {% elif drug.is_low_stock %}
+            <div class="text-[11px] font-bold text-amber-600">{{ drug.total_quantity }} left</div>
+            {% else %}
+            <div class="text-[11px] font-bold text-emerald-600">{{ drug.total_quantity }} in stock</div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
 </div>
 {% else %}
-<div
-    class="absolute z-50 w-full mt-4 bg-white/95 backdrop-blur-2xl rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.15)] border border-slate-200 p-12 text-center animate-in slide-in-from-top-4 duration-500">
-    <div
-        class="w-24 h-24 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-200 border-2 border-dashed border-slate-100 rotate-12">
-        <i data-lucide="package-search" class="w-12 h-12"></i>
+<div id="search-results-list"
+    class="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl shadow-slate-300/40 border border-slate-200 px-6 py-8 text-center animate-in slide-in-from-top-2 duration-200">
+    <div class="w-14 h-14 rounded-2xl bg-slate-50 grid place-items-center mx-auto mb-3 text-slate-300">
+        <i data-lucide="package-search" class="w-7 h-7"></i>
     </div>
-    <h3 class="text-xl font-black text-slate-800 tracking-tight">Inventory Empty</h3>
-    <p class="text-[10px] text-slate-400 uppercase tracking-[0.2em] mt-3">Try different keywords or check Stock</p>
+    <p class="text-sm font-bold text-slate-600">No products found</p>
+    <p class="text-xs text-slate-400 mt-0.5">Try a different name or barcode</p>
 </div>
 {% endif %}
 
 <script>
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 </script>

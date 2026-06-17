@@ -4,152 +4,123 @@
 {% block header_title %}POS Terminal{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-12 gap-8 h-[calc(100vh-10rem)] animate-in fade-in slide-in-from-bottom-4 duration-700">
-    <!-- Left Column: Search & Items -->
-    <div class="col-span-12 lg:col-span-8 flex flex-col space-y-6 h-full min-h-0">
-        <!-- Search/Scan Bar - REDESIGNED for Premium Feel -->
-        <div class="relative group">
-            <div
-                class="absolute -inset-1 bg-gradient-to-r from-accent-600 to-primary-600 rounded-[2.5rem] blur opacity-20 group-focus-within:opacity-40 transition duration-1000 group-focus-within:duration-200">
+<div class="grid grid-cols-12 gap-5 h-full min-h-0">
+
+    <!-- ============== LEFT: Search + Cart ============== -->
+    <div class="col-span-12 xl:col-span-8 flex flex-col gap-4 h-full min-h-0">
+
+        <!-- Search / Scan bar -->
+        <div id="scan-bar" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 transition-shadow">
+            <div class="flex items-stretch gap-3">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i data-lucide="search" class="w-5 h-5 text-slate-400"></i>
+                    </div>
+                    <input type="text" id="pos-search-input" name="q"
+                        hx-get="{% url 'pos:search_drugs' %}" hx-trigger="keyup changed delay:250ms"
+                        hx-target="#search-results" hx-indicator="#search-loading"
+                        autofocus autocomplete="off" spellcheck="false"
+                        placeholder="Scan barcode or search by name…"
+                        class="block w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-lg font-semibold text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:bg-white focus:border-accent-500 focus:ring-4 focus:ring-accent-500/10 transition-all">
+                    <div id="search-loading" class="htmx-indicator absolute right-4 top-1/2 -translate-y-1/2">
+                        <div class="animate-spin rounded-full h-5 w-5 border-2 border-accent-500 border-t-transparent"></div>
+                    </div>
+                    <div id="search-results" class="relative"></div>
+                </div>
+
+                <button type="button" onclick="openPosScanner()" id="scanner-btn"
+                    class="shrink-0 flex items-center gap-2.5 px-5 rounded-xl bg-accent-600 hover:bg-accent-700 text-white font-bold transition-all active:scale-95 shadow-sm shadow-accent-600/20">
+                    <i data-lucide="scan-line" class="w-5 h-5"></i>
+                    <span class="hidden sm:inline">Scan</span>
+                </button>
+
+                <form id="pos-barcode-form" hx-post="{% url 'pos:add_to_cart' %}" hx-target="#cart-container"
+                    class="hidden">
+                    {% csrf_token %}
+                    <input type="hidden" name="barcode" id="hidden-barcode-input">
+                </form>
             </div>
-            <div class="bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl relative overflow-visible border border-white/5">
-                <!-- Decorative Background -->
-                <div
-                    class="absolute top-0 right-0 w-64 h-64 bg-accent-600/10 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none">
-                </div>
-
-                <div class="relative z-10 flex flex-col md:flex-row items-stretch gap-4">
-                    <div class="relative flex-1 group/input">
-                        <div class="absolute inset-y-0 left-0 pl-7 flex items-center pointer-events-none">
-                            <i data-lucide="search"
-                                class="w-7 h-7 text-slate-500 group-focus-within/input:text-accent-400 group-focus-within/input:scale-110 transition-all"></i>
-                        </div>
-
-                        <input type="text" id="pos-search-input" name="q" hx-get="{% url 'pos:search_drugs' %}"
-                            hx-trigger="keyup changed delay:300ms" hx-target="#search-results"
-                            hx-indicator="#search-loading" autofocus autocomplete="off"
-                            placeholder="Search drug name or scan barcode..."
-                            class="block w-full pl-16 pr-8 py-6 bg-white/5 border border-white/10 rounded-2xl text-2xl font-black text-white placeholder:text-slate-600 focus:outline-none focus:ring-0 focus:border-accent-400/50 transition-all font-mono tracking-tight">
-
-                        <div id="search-loading" class="htmx-indicator absolute right-8 top-1/2 -translate-y-1/2">
-                            <div
-                                class="animate-spin rounded-full h-8 w-8 border-4 border-accent-400 border-t-transparent shadow-lg shadow-accent-400/20">
-                            </div>
-                        </div>
-
-                        <!-- Search Results Dropdown -->
-                        <div id="search-results" class="relative"></div>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <button type="button" onclick="openPosScanner()" id="scanner-btn"
-                            class="bg-white/5 hover:bg-emerald-500/20 text-emerald-400 hover:text-emerald-300 px-8 py-6 rounded-2xl transition-all flex items-center space-x-4 border border-white/10 group/btn shadow-lg hover:shadow-emerald-500/10">
-                            <i data-lucide="scan-line"
-                                class="w-7 h-7 group-hover/btn:scale-125 transition-transform duration-300"></i>
-                            <span class="text-xs font-black uppercase tracking-[0.3em]">Scan</span>
-                        </button>
-
-                        <form id="pos-barcode-form" hx-post="{% url 'pos:add_to_cart' %}" hx-target="#cart-container"
-                            class="hidden">
-                            {% csrf_token %}
-                            <input type="hidden" name="barcode" id="hidden-barcode-input">
-                        </form>
-                    </div>
-                </div>
+            <div class="flex items-center gap-x-5 gap-y-1 flex-wrap px-1.5 pt-2.5 text-[11px] font-semibold text-slate-400">
+                <span class="flex items-center gap-1.5"><i data-lucide="scan-barcode" class="w-3.5 h-3.5"></i> USB scanners add items automatically</span>
+                <span class="hidden md:flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500">F2</kbd> Search</span>
+                <span class="hidden md:flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500">F9</kbd> Charge</span>
+                <span class="hidden md:flex items-center gap-1.5"><kbd class="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500">Esc</kbd> Clear</span>
             </div>
         </div>
 
-        <!-- Cart Table - REDESIGNED for Premium Feel -->
+        <!-- Cart -->
         <div id="cart-container"
-            class="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-slate-200/60 flex-1 overflow-hidden flex flex-col shadow-2xl shadow-slate-200/50">
+            class="bg-white rounded-2xl border border-slate-200 shadow-sm flex-1 min-h-0 flex flex-col overflow-hidden">
             {% include 'pos/partials/cart_items_content.html' %}
         </div>
     </div>
 
-    <!-- Right Column: Billing & Customer - REDESIGNED for Premium Feel -->
-    <div class="col-span-12 lg:col-span-4 h-full min-h-0 flex flex-col">
-        <div
-            class="bg-white rounded-[2.5rem] border border-slate-200/60 h-full flex flex-col shadow-2xl shadow-slate-200/50 overflow-hidden">
-            <div class="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div>
-                    <h3 class="text-2xl font-black text-slate-900 tracking-tight">Checkout</h3>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Order Details</p>
-                </div>
-                <div
-                    class="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center">
-                    <i data-lucide="receipt-text" class="w-6 h-6 text-accent-600"></i>
-                </div>
+    <!-- ============== RIGHT: Checkout ============== -->
+    <div class="col-span-12 xl:col-span-4 h-full min-h-0">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Checkout</h3>
+                <span class="w-9 h-9 rounded-xl bg-accent-50 flex items-center justify-center">
+                    <i data-lucide="receipt-text" class="w-5 h-5 text-accent-600"></i>
+                </span>
             </div>
 
-            <form action="{% url 'pos:checkout' %}" method="post"
-                class="flex-1 flex flex-col px-10 py-8 space-y-8 min-h-0 overflow-y-auto custom-scrollbar">
+            <form action="{% url 'pos:checkout' %}" method="post" id="checkout-form"
+                class="flex-1 flex flex-col min-h-0">
                 {% csrf_token %}
 
-                <div class="space-y-8">
-                    <!-- Customer Selection -->
-                    <div class="flex items-center space-x-2">
-                        <div class="relative flex-1 group">
-                            <select name="customer_id" id="customer-select"
-                                class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all appearance-none cursor-pointer">
-                                <option value="">Walk-in Customer</option>
-                                {% for customer in customers %}
-                                <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.phone_number|default:"No Phone" }})</option>
-                                {% endfor %}
-                            </select>
-                            <div
-                                class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none text-slate-400 group-hover:text-accent-600 transition-colors">
-                                <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                <div class="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-6">
+                    <!-- Customer -->
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-2 block">Customer</label>
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <select name="customer_id" id="customer-select"
+                                    class="block w-full pl-4 pr-9 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 transition-all appearance-none cursor-pointer">
+                                    <option value="">Walk-in Customer</option>
+                                    {% for customer in customers %}
+                                    <option value="{{ customer.id }}">{{ customer.name }} ({{ customer.phone_number|default:"No Phone" }})</option>
+                                    {% endfor %}
+                                </select>
+                                <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
                             </div>
+                            <button type="button" hx-get="{% url 'customers:create' %}?from_pos=true"
+                                hx-target="#modal-content"
+                                class="p-3 bg-slate-100 text-slate-600 hover:bg-accent-50 hover:text-accent-600 rounded-xl border border-slate-200 transition-all active:scale-90"
+                                title="Quick register customer">
+                                <i data-lucide="user-plus" class="w-5 h-5"></i>
+                            </button>
                         </div>
-                        <button type="button" hx-get="{% url 'customers:create' %}?from_pos=true"
-                            hx-target="#modal-content"
-                            class="p-4 bg-accent-50 text-accent-600 hover:bg-accent-100 rounded-2xl border border-accent-200 transition-all active:scale-90 shadow-sm shadow-accent-600/10 group/add"
-                            title="Quick Register Customer">
-                            <i data-lucide="user-plus"
-                                class="w-6 h-6 transition-transform group-hover/add:scale-110"></i>
-                        </button>
                     </div>
 
-                    <!-- Payment Method -->
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Payment
-                            Method</label>
-                        <div class="grid grid-cols-2 gap-4">
+                    <!-- Payment -->
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-2 block">Payment Method</label>
+                        <div class="grid grid-cols-4 gap-2">
                             {% for method, icon, label in payment_options %}
                             <label
-                                class="relative flex flex-col items-center justify-center p-5 border-2 border-slate-100 rounded-3xl cursor-pointer hover:bg-slate-50 transition-all group has-[:checked]:border-accent-600 has-[:checked]:bg-accent-50/50 has-[:checked]:shadow-lg has-[:checked]:shadow-accent-600/5">
-                                <input type="radio" name="payment_method" value="{{ method }}" class="hidden" {% if method == 'CASH' %}checked{% endif %}>
-                                <div
-                                    class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mb-3 group-hover:bg-white group-has-[:checked]:bg-white group-has-[:checked]:shadow-sm transition-all">
-                                    <i data-lucide="{{ icon }}"
-                                        class="w-6 h-6 text-slate-400 group-hover:text-accent-600 group-has-[:checked]:text-accent-600 transition-colors"></i>
-                                </div>
-                                <span
-                                    class="text-[10px] font-black uppercase tracking-widest text-slate-500 group-hover:text-slate-900 group-has-[:checked]:text-accent-950">{{label}}</span>
+                                class="relative flex flex-col items-center justify-center gap-1.5 py-3 border-2 border-slate-100 rounded-xl cursor-pointer hover:border-slate-200 hover:bg-slate-50 transition-all has-[:checked]:border-accent-600 has-[:checked]:bg-accent-50/60">
+                                <input type="radio" name="payment_method" value="{{ method }}" class="sr-only" {% if method == 'CASH' %}checked{% endif %}>
+                                <i data-lucide="{{ icon }}" class="w-5 h-5 text-slate-400"></i>
+                                <span class="text-[10px] font-bold uppercase tracking-wide text-slate-500">{{ label }}</span>
                             </label>
                             {% endfor %}
                         </div>
                     </div>
 
-                    <!-- Discount Section - REDESIGNED -->
-                    <div class="space-y-3">
-                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Special
-                            Discount</label>
-                        <div class="relative group">
-                            <div
-                                class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-red-500/50 group-focus-within:text-red-500 transition-colors">
-                                <i data-lucide="tag" class="w-5 h-5"></i>
-                            </div>
-                            <input type="number" name="discount" step="1.0" value="0"
-                                class="block w-full pl-12 pr-6 py-4 bg-red-50/20 border border-red-100 rounded-2xl text-lg font-black text-red-700 focus:ring-4 focus:ring-red-500/10 focus:border-red-400 transition-all placeholder:text-red-300">
-                            <div class="absolute inset-y-0 right-0 pr-5 flex items-center pointer-events-none">
-                                <span class="text-[10px] font-black text-red-300 uppercase">SDG</span>
-                            </div>
+                    <!-- Discount -->
+                    <div>
+                        <label class="text-xs font-bold text-slate-500 mb-2 block">Discount (SDG)</label>
+                        <div class="relative">
+                            <i data-lucide="tag" class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                            <input type="number" name="discount" step="1" min="0" value="0" id="discount-input"
+                                class="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base font-bold text-slate-900 focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 transition-all">
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-auto pt-10" id="cart-summary">
+                <!-- Totals + Pay -->
+                <div id="cart-summary">
                     {% include 'pos/partials/cart_summary_content.html' %}
                 </div>
             </form>
@@ -159,155 +130,179 @@
 {% endblock %}
 
 {% block extra_js %}
-
 <script>
-    // Real-time Billing Updates
+    /* ---------- Audio feedback (Web Audio) ---------- */
+    let _audioCtx = null;
+    function _tone(freq, dur, when, vol) {
+        try {
+            if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = _audioCtx.createOscillator(), g = _audioCtx.createGain();
+            o.connect(g); g.connect(_audioCtx.destination);
+            o.type = 'sine';
+            const t0 = _audioCtx.currentTime + (when || 0);
+            o.frequency.setValueAtTime(freq, t0);
+            g.gain.setValueAtTime(vol || 0.12, t0);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            o.start(t0); o.stop(t0 + dur);
+        } catch (e) { }
+    }
+    function soundOk() { _tone(900, 0.10, 0, 0.12); }
+    function soundErr() { _tone(220, 0.18, 0, 0.16); _tone(180, 0.20, 0.12, 0.16); }
+
+    /* ---------- Lightweight toast ---------- */
+    function posToast(message, level) {
+        const wrap = document.getElementById('messages-container');
+        if (!wrap) return;
+        const colors = level === 'error'
+            ? 'border-red-200 text-red-700'
+            : (level === 'warning' ? 'border-amber-200 text-amber-700' : 'border-emerald-200 text-emerald-700');
+        const icon = level === 'error' ? 'alert-circle' : (level === 'warning' ? 'alert-triangle' : 'check-circle-2');
+        const host = wrap.querySelector('.pos-toast-host') || (() => {
+            const d = document.createElement('div');
+            d.className = 'pos-toast-host fixed top-6 right-6 z-[80] space-y-2 w-80';
+            wrap.appendChild(d); return d;
+        })();
+        const el = document.createElement('div');
+        el.className = `bg-white shadow-xl rounded-xl border px-4 py-3 flex items-center gap-3 text-sm font-semibold animate-in slide-in-from-right-6 duration-200 ${colors}`;
+        el.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i><span>${message}</span>`;
+        host.appendChild(el);
+        if (window.lucide) lucide.createIcons();
+        setTimeout(() => { el.classList.add('opacity-0'); el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 2600);
+    }
+
+    /* ---------- Flash the scan bar ---------- */
+    function flashScanBar(kind) {
+        const bar = document.getElementById('scan-bar');
+        if (!bar) return;
+        const cls = kind === 'ok' ? 'ring-emerald-400' : 'ring-red-400';
+        bar.classList.add('ring-4', cls);
+        setTimeout(() => bar.classList.remove('ring-4', cls), 450);
+    }
+
+    function focusSearch(clear) {
+        const s = document.getElementById('pos-search-input');
+        if (!s) return;
+        if (clear) { s.value = ''; const r = document.getElementById('search-results'); if (r) r.innerHTML = ''; }
+        s.focus();
+    }
+
+    /* ---------- Totals ---------- */
     function updateTotals() {
         const subtotalEl = document.getElementById('subtotal-val');
-        const discountInput = document.querySelector('input[name="discount"]');
+        const discountInput = document.getElementById('discount-input');
         const discountDisplay = document.getElementById('discount-display');
         const finalTotalDisplay = document.getElementById('final-total-display');
+        const checkoutAmount = document.getElementById('checkout-amount');
         const checkoutBtn = document.getElementById('checkout-btn');
-
-        if (!subtotalEl || !discountInput || !finalTotalDisplay) return;
+        if (!subtotalEl || !finalTotalDisplay) return;
 
         const subtotal = parseFloat(subtotalEl.getAttribute('data-subtotal')) || 0;
-        const discount = parseFloat(discountInput.value) || 0;
+        let discount = parseFloat(discountInput ? discountInput.value : 0) || 0;
+        if (discount < 0) discount = 0;
+        if (discount > subtotal) discount = subtotal;
         const total = Math.max(0, subtotal - discount);
+        const fmt = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 0 });
 
-        if (discountDisplay) {
-            discountDisplay.textContent = `-SDG ${discount.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
-        }
-        finalTotalDisplay.textContent = `SDG ${total.toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
-
-        if (checkoutBtn) {
-            checkoutBtn.disabled = (subtotal <= 0);
-        }
+        if (discountDisplay) discountDisplay.textContent = `−SDG ${fmt(discount)}`;
+        finalTotalDisplay.textContent = `SDG ${fmt(total)}`;
+        if (checkoutAmount) checkoutAmount.textContent = `SDG ${fmt(total)}`;
+        if (checkoutBtn) checkoutBtn.disabled = (subtotal <= 0);
     }
 
-    // Event Delegation for Billing
-    document.addEventListener('input', (e) => {
-        if (e.target.name === 'discount') {
-            updateTotals();
-        }
+    /* ---------- Scan feedback events (from HX-Trigger) ---------- */
+    document.body.addEventListener('scanSuccess', () => { soundOk(); flashScanBar('ok'); focusSearch(true); });
+    document.body.addEventListener('scanError', (e) => {
+        soundErr(); flashScanBar('err');
+        const m = e.detail && e.detail.message; if (m) posToast(m, 'error');
+        focusSearch(true);
+    });
+    document.body.addEventListener('posToast', (e) => {
+        const d = e.detail || {}; posToast(d.message || '', d.level || 'info');
     });
 
-    // Hardware Scanner Fallback & Search Keyboard Navigation
-    let barcodeString = "";
-    let lastKeyTime = Date.now();
+    document.addEventListener('input', (e) => { if (e.target.id === 'discount-input') updateTotals(); });
 
+    /* ---------- Keyboard: search Enter (add first match / barcode) + nav ---------- */
     document.addEventListener('keydown', (e) => {
         const searchInput = document.getElementById('pos-search-input');
-        const resultsList = document.getElementById('search-results-list');
-        const activeItem = document.activeElement;
+        const active = document.activeElement;
 
-        // Enter in the search box: if the results dropdown is showing, add the
-        // first (most relevant) match; otherwise treat the text as a barcode /
-        // exact name (also how a USB scanner that types into the box behaves).
-        if (e.key === 'Enter' && activeItem === searchInput) {
+        // Global shortcuts (ignore while typing in another field)
+        if (e.key === 'F2') { e.preventDefault(); focusSearch(false); return; }
+        if (e.key === 'F9') {
             e.preventDefault();
-            const firstResult = document.querySelector('.search-result-item');
-            if (firstResult) {
-                firstResult.click();
-                return;
-            }
+            const btn = document.getElementById('checkout-btn');
+            if (btn && !btn.disabled) document.getElementById('checkout-form').requestSubmit();
+            return;
+        }
+
+        if (e.key === 'Enter' && active === searchInput) {
+            e.preventDefault();
+            const first = document.querySelector('.search-result-item');
+            if (first) { first.click(); return; }
             const value = searchInput.value.trim();
             if (value.length > 0) {
-                const hiddenInput = document.getElementById('hidden-barcode-input');
-                if (hiddenInput) {
-                    hiddenInput.value = value;
-                    htmx.trigger("#pos-barcode-form", "submit");
-                    searchInput.value = '';
-                    const sr = document.getElementById('search-results');
-                    if (sr) sr.innerHTML = '';
-                }
+                document.getElementById('hidden-barcode-input').value = value;
+                htmx.trigger('#pos-barcode-form', 'submit');
+                focusSearch(true);
             }
             return;
         }
 
-        if (resultsList && (searchInput === activeItem || resultsList.contains(activeItem))) {
+        const resultsList = document.getElementById('search-results-list');
+        if (resultsList && (searchInput === active || resultsList.contains(active))) {
             const items = Array.from(document.querySelectorAll('.search-result-item'));
-            const currentIndex = items.indexOf(activeItem);
-
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                const nextItem = items[currentIndex + 1] || items[0];
-                if (nextItem) nextItem.focus();
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                const prevItem = items[currentIndex - 1] || items[items.length - 1];
-                if (prevItem) prevItem.focus();
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                activeItem.click();
-            } else if (e.key === 'Escape') {
-                document.getElementById('search-results').innerHTML = '';
-                searchInput.focus();
-            }
+            const i = items.indexOf(active);
+            if (e.key === 'ArrowDown') { e.preventDefault(); (items[i + 1] || items[0]).focus(); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); (items[i - 1] || items[items.length - 1]).focus(); }
+            else if (e.key === 'Enter') { e.preventDefault(); active.click(); }
+            else if (e.key === 'Escape') { document.getElementById('search-results').innerHTML = ''; focusSearch(false); }
+        } else if (e.key === 'Escape') {
+            const r = document.getElementById('search-results'); if (r) r.innerHTML = '';
         }
     });
 
+    /* ---------- Hardware (USB) scanner fallback when focus is elsewhere ---------- */
+    let barcodeString = "", lastKeyTime = Date.now();
     document.addEventListener('keypress', (e) => {
-        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
-            return;
-        }
-
-        const currentTime = Date.now();
-        if (currentTime - lastKeyTime > 100) {
-            barcodeString = "";
-        }
-        lastKeyTime = currentTime;
-
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+        const now = Date.now();
+        if (now - lastKeyTime > 100) barcodeString = "";
+        lastKeyTime = now;
         if (e.key === 'Enter') {
-            if (barcodeString.length > 3) {
-                const hiddenInput = document.getElementById('hidden-barcode-input');
-                if (hiddenInput) {
-                    hiddenInput.value = barcodeString;
-                    htmx.trigger("#pos-barcode-form", "submit");
-                }
-                barcodeString = "";
-                e.preventDefault();
+            if (barcodeString.length > 2) {
+                document.getElementById('hidden-barcode-input').value = barcodeString;
+                htmx.trigger('#pos-barcode-form', 'submit');
             }
-        } else {
-            barcodeString += e.key;
-        }
+            barcodeString = ""; e.preventDefault();
+        } else { barcodeString += e.key; }
     });
 
-    // QR / Barcode camera scanner — uses the shared PharmaScanner overlay.
-    // Continuous mode lets the cashier scan several items in a row; each decoded
-    // code is submitted to the cart via the hidden barcode form.
+    /* ---------- Camera scanner (continuous) ---------- */
     function submitBarcode(code) {
-        const hiddenInput = document.getElementById('hidden-barcode-input');
-        if (hiddenInput) {
-            hiddenInput.value = code;
-            htmx.trigger("#pos-barcode-form", "submit");
-        }
+        const h = document.getElementById('hidden-barcode-input');
+        if (h) { h.value = code; htmx.trigger('#pos-barcode-form', 'submit'); }
     }
-
     function openPosScanner() {
         if (!window.PharmaScanner) return;
-        PharmaScanner.open({
-            title: 'Scan to add item',
-            continuous: true,
-            onScan: submitBarcode,
-        });
+        PharmaScanner.open({ title: 'Scan to add items', continuous: true, onScan: submitBarcode });
     }
 
+    /* ---------- Re-init after cart swaps ---------- */
     document.body.addEventListener('htmx:afterSwap', (e) => {
-        lucide.createIcons();
-        if (e.detail.target.id === 'cart-container' || e.detail.target.id === 'cart-summary') {
-            updateTotals();
-        }
+        if (window.lucide) lucide.createIcons();
+        const id = e.detail.target && e.detail.target.id;
+        if (id === 'cart-container' || id === 'cart-summary') updateTotals();
     });
 
+    // Dismiss search dropdown on outside click
     document.addEventListener('click', (e) => {
-        const searchResults = document.getElementById('search-results');
-        const searchInput = document.getElementById('pos-search-input');
-        if (searchResults && !searchResults.contains(e.target) && e.target !== searchInput) {
-            searchResults.innerHTML = '';
-        }
+        const sr = document.getElementById('search-results');
+        const si = document.getElementById('pos-search-input');
+        if (sr && !sr.contains(e.target) && e.target !== si) sr.innerHTML = '';
     });
 
-    document.addEventListener('DOMContentLoaded', updateTotals);
+    document.addEventListener('DOMContentLoaded', () => { updateTotals(); focusSearch(false); });
+    updateTotals();
 </script>
 {% endblock %}

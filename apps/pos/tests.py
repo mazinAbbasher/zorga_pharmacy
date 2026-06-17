@@ -84,6 +84,13 @@ class CheckoutFlowTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertNotIn(str(self.drug.id), self.client.session.get("cart", {}))
 
+    def test_clear_cart_empties_everything(self):
+        self.client.post("/pos/add-to-cart/", {"drug_id": self.drug.id})
+        self.assertIn(str(self.drug.id), self.client.session["cart"])
+        r = self.client.post("/pos/clear-cart/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.client.session.get("cart", {}), {})
+
     def test_cannot_oversell_beyond_stock(self):
         self.client.post("/pos/add-to-cart/", {"drug_id": self.drug.id})
         self.client.post(

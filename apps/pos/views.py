@@ -1,3 +1,5 @@
+import json
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from drugs.models import Drug
@@ -9,6 +11,21 @@ from inventory.models import StockMovement
 from django.template.defaultfilters import floatformat
 from django.utils import timezone
 from django.db.models import Q
+
+
+def _cart_response(request, error=None, trigger=None):
+    """Render the cart partial and attach an optional HX-Trigger event.
+
+    The POS terminal listens for these events to give the cashier instant
+    audio/visual feedback (scan accepted, not recognised, quantity capped).
+    """
+    context = _get_cart_context(request)
+    if error:
+        context['error'] = error
+    response = render(request, 'pos/partials/cart.html', context)
+    if trigger:
+        response['HX-Trigger'] = json.dumps(trigger)
+    return response
 
 @login_required
 def index(request):
@@ -62,20 +79,21 @@ def add_to_cart(request):
         drug = Drug.objects.filter(id=drug_id).first()
         
     if not drug:
-        return render(request, 'pos/partials/cart.html', {'error': 'Drug not found', **_get_cart_context(request)})
-    
+        label = barcode or 'item'
+        return _cart_response(request, error=f'Not recognised: {label}',
+                              trigger={'scanError': {'message': f'Not recognised: {label}'}})
+
     if drug.total_quantity <= 0:
-        return render(request, 'pos/partials/cart.html', {'error': f'Out of stock: {drug.trade_name}', **_get_cart_context(request)})
+        return _cart_response(request, error=f'Out of stock: {drug.trade_name}',
+                              trigger={'scanError': {'message': f'Out of stock: {drug.trade_name}'}})
 
     cart = request.session.get('cart', {})
     str_id = str(drug.id)
-    
+
     current_qty = cart.get(str_id, {}).get('quantity', 0)
     if current_qty + 1 > drug.total_quantity:
-        return render(request, 'pos/partials/cart.html', {
-            'error': f'Insufficient stock for {drug.trade_name}. Max available: {drug.total_quantity}',
-            **_get_cart_context(request)
-        })
+        msg = f'Only {drug.total_quantity} of {drug.trade_name} in stock'
+        return _cart_response(request, error=msg, trigger={'scanError': {'message': msg}})
 
     if str_id in cart:
         cart[str_id]['quantity'] += 1
@@ -86,11 +104,11 @@ def add_to_cart(request):
             'quantity': 1,
             'name': drug.trade_name
         }
-    
+
     request.session['cart'] = cart
     request.session.modified = True
-    
-    return render(request, 'pos/partials/cart.html', _get_cart_context(request))
+
+    return _cart_response(request, trigger={'scanSuccess': {'name': drug.trade_name}})
 
 @login_required
 def update_cart(request, drug_id):
@@ -102,22 +120,23 @@ def update_cart(request, drug_id):
         
     cart = request.session.get('cart', {})
     str_id = str(drug_id)
-    
+    trigger = None
+
     if str_id in cart:
         if quantity > 0:
             drug = get_object_or_404(Drug, id=drug_id)
             if quantity > drug.total_quantity:
-                messages.warning(request, f"Only {drug.total_quantity} items available in stock.")
+                msg = f"Only {drug.total_quantity} of {drug.trade_name} in stock"
+                trigger = {'posToast': {'message': msg, 'level': 'warning'}}
                 quantity = drug.total_quantity
             cart[str_id]['quantity'] = quantity
         else:
             del cart[str_id]
-            
+
     request.session['cart'] = cart
     request.session.modified = True
-    
-    context = _get_cart_context(request)
-    return render(request, 'pos/partials/cart.html', context)
+
+    return _cart_response(request, trigger=trigger)
 
 @login_required
 def remove_from_cart(request, drug_id):
@@ -128,7 +147,14 @@ def remove_from_cart(request, drug_id):
         del cart[str_id]
     request.session['cart'] = cart
     request.session.modified = True
-    return render(request, 'pos/partials/cart.html', _get_cart_context(request))
+    return _cart_response(request)
+
+@login_required
+def clear_cart(request):
+    """HTMX: Empty the whole cart in one action."""
+    request.session['cart'] = {}
+    request.session.modified = True
+    return _cart_response(request)
 
 @login_required
 @transaction.atomic
