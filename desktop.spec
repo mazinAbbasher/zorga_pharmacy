@@ -30,11 +30,19 @@ for label in APP_LABELS:
 hiddenimports += collect_submodules("whitenoise")
 hiddenimports += ["waitress", "widget_tweaks"]
 
-# Bundle templates/static that live inside the app packages, plus the two
-# project-level directories that aren't part of any package.
+# Bundle templates and static files.
+#
+# App templates are namespaced (apps/users/templates/users/login.html), so we
+# merge every app's templates/ directory into one "app_templates" folder. The
+# inner per-app subfolder keeps names unique, and settings.py adds this folder
+# to TEMPLATES['DIRS'] so the filesystem loader finds them in the frozen build
+# (the app_directories loader can't resolve package paths once packaged).
 datas = []
 for label in APP_LABELS:
-    datas += collect_data_files(label, includes=["**/*.html", "**/*.txt"])
+    tdir = os.path.join(APPS_DIR, label, "templates")
+    if os.path.isdir(tdir):
+        datas.append((tdir, "app_templates"))
+
 datas += [
     (os.path.join(PROJECT_DIR, "templates"), "templates"),
     (os.path.join(PROJECT_DIR, "static"), "static"),

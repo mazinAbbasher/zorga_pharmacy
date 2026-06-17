@@ -104,10 +104,19 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+# Project-level templates dir. When packaged by PyInstaller the app_directories
+# loader can't resolve per-app template folders, so the build merges every app's
+# templates into BASE_DIR/'app_templates' and we add it here for the filesystem
+# loader to find (e.g. 'users/login.html'). It only exists in frozen builds.
+TEMPLATE_DIRS = [BASE_DIR / 'templates']
+_bundled_app_templates = BASE_DIR / 'app_templates'
+if _bundled_app_templates.is_dir():
+    TEMPLATE_DIRS.append(_bundled_app_templates)
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': TEMPLATE_DIRS,
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
