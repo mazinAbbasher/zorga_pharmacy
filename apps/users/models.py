@@ -10,7 +10,7 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
 
     def is_admin(self):
-        return self.role == 'ADMIN'
+        return self.is_superuser or self.role == 'ADMIN'
 
     def is_pharmacist(self):
-        return self.role == 'PHARMACIST'
+        return not self.is_admin() and self.role == 'PHARMACIST'

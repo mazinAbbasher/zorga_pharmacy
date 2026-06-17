@@ -1,0 +1,11 @@
+# Desktop build/runtime extras (in addition to requirements.txt).
+# Installed when packaging or running the native desktop launcher.
+-r requirements.txt
+
+# Native desktop window. On Linux it needs system WebKitGTK packages
+# (e.g. gir1.2-webkit2-4.1 / python3-gi); without them the launcher falls
+# back to opening the default web browser.
+pywebview>=5.0
+
+# Bundle the app into a standalone executable.
+pyinstaller>=6.0

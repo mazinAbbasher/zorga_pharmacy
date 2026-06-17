@@ -31,3 +31,9 @@ env/
 # Standalone tailwindcss binary (optional, usually ignored)
 tailwindcss
 tailwindcss-linux*
+
+# Desktop packaging / runtime artifacts
+build/
+dist/
+*.log
+secret_key.txt

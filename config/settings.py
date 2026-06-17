@@ -15,22 +15,50 @@ import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+# When packaged by PyInstaller, bundled data (templates, static) lives under the
+# extraction dir exposed as sys._MEIPASS, so use that as the base.
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Add apps directory to sys.path
+# Add apps directory to sys.path (harmless when frozen; apps are bundled there).
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
+
+
+def _env_bool(name, default):
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+# Writable location for user data (database, media, logs). When the app is
+# packaged as a desktop binary the project directory may be read-only, so this
+# defaults to a per-user data directory. Override with PHARMACY_DATA_DIR.
+DATA_DIR = Path(os.environ.get('PHARMACY_DATA_DIR', BASE_DIR))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-i+6)nm)645qq+6_-ar@tzf%0^ntd+sisra3f1@$+5*=73)p9!#'
+# In development a stable insecure key is fine; for a packaged/desktop build set
+# DJANGO_SECRET_KEY (the desktop launcher generates and persists one per install).
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-i+6)nm)645qq+6_-ar@tzf%0^ntd+sisra3f1@$+5*=73)p9!#',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = _env_bool('DJANGO_DEBUG', True)
 
-ALLOWED_HOSTS = []
+# localhost is always allowed so the bundled desktop server works out of the box.
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', 'testserver']
+ALLOWED_HOSTS += [
+    h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',') if h.strip()
+]
 
 
 # Application definition
@@ -63,6 +91,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise serves static files directly from the app (works with DEBUG=False
+    # and inside a packaged desktop build, with no separate web server).
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -98,7 +129,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DATA_DIR / 'db.sqlite3',
+        # Wait up to 20s for the write lock instead of erroring immediately;
+        # helps when the desktop app and a background task touch the DB at once.
+        'OPTIONS': {'timeout': 20},
     }
 }
 
@@ -139,10 +173,20 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_ROOT = DATA_DIR / 'staticfiles'
+
+# Compress and cache-bust static files, and serve them via WhiteNoise.
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
+    },
+}
 
 MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = DATA_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -154,3 +198,53 @@ LOGIN_URL = 'login'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Test runner that accounts for the apps/ layout (see config/test_runner.py)
+TEST_RUNNER = 'config.test_runner.AppsTestRunner'
+
+
+# CSRF: trust the local origins the desktop app is served from.
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost', 'http://127.0.0.1',
+    'http://localhost:8000', 'http://127.0.0.1:8000',
+]
+CSRF_TRUSTED_ORIGINS += [
+    o.strip() for o in os.environ.get('DJANGO_CSRF_TRUSTED_ORIGINS', '').split(',') if o.strip()
+]
+
+
+# Hardening that only makes sense once DEBUG is off (e.g. a real deployment).
+# The desktop app runs over plain HTTP on localhost, so SSL redirects stay off
+# there; enable them via env if you ever serve this over HTTPS.
+if not DEBUG:
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SESSION_COOKIE_HTTPONLY = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_SSL_REDIRECT = _env_bool('DJANGO_SECURE_SSL_REDIRECT', False)
+    SESSION_COOKIE_SECURE = _env_bool('DJANGO_SESSION_COOKIE_SECURE', False)
+    CSRF_COOKIE_SECURE = _env_bool('DJANGO_CSRF_COOKIE_SECURE', False)
+
+
+# Logging: in a packaged desktop app there's no console, so also write to a file
+# under the writable data dir to make field debugging possible.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {'format': '{asctime} {levelname} {name}: {message}', 'style': '{'},
+    },
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(DATA_DIR / 'pharmacy.log'),
+            'maxBytes': 2 * 1024 * 1024,
+            'backupCount': 3,
+            'formatter': 'verbose',
+        },
+    },
+    'root': {'handlers': ['console', 'file'], 'level': 'INFO'},
+    'loggers': {
+        'django': {'handlers': ['console', 'file'], 'level': 'INFO', 'propagate': False},
+    },
+}

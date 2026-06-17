@@ -1,0 +1,6 @@
+asgiref==3.11.1
+Django==5.2.11
+django-widget-tweaks==1.5.1
+sqlparse==0.5.5
+waitress==3.0.2
+whitenoise==6.12.0
