@@ -82,8 +82,33 @@ def wait_until_serving(url: str, timeout: float = 20.0) -> bool:
     return False
 
 
+def ensure_std_streams(data_dir: Path) -> None:
+    """Give the process valid stdout/stderr when launched without a console.
+
+    A windowed build (PyInstaller console=False, or pythonw.exe) sets
+    sys.stdout/sys.stderr to None, so any print() or Django management-command
+    output raises ``'NoneType' object has no attribute 'write'``. Redirect them
+    to a log file so output is captured instead of crashing.
+    """
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    try:
+        stream = open(
+            data_dir / "desktop-console.log", "a", encoding="utf-8", buffering=1
+        )
+    except Exception:
+        import io
+
+        stream = io.StringIO()
+    if sys.stdout is None:
+        sys.stdout = stream
+    if sys.stderr is None:
+        sys.stderr = stream
+
+
 def main() -> int:
     data_dir = configure_environment()
+    ensure_std_streams(data_dir)
 
     import django
 
