@@ -67,16 +67,27 @@ if (-not $py) {
 
 $venvPy = Join-Path $PSScriptRoot ".venv\Scripts\python.exe"
 
-# Recreate the virtual environment if missing or built with an old Python.
+# Recreate the virtual environment if missing, broken, or built with an old
+# Python. A venv created by a since-removed Python (e.g. an old 3.9) has a dead
+# python.exe stub, so probing it can error -- that must mean "recreate", not crash.
 $recreate = $true
 if (Test-Path $venvPy) {
-    $vv = & $venvPy -c "import sys;print('%d.%d' % sys.version_info[:2])" 2>$null
+    $vv = $null
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "SilentlyContinue"
+    try {
+        $vv = & $venvPy -c "import sys;print('%d.%d' % sys.version_info[:2])" 2>$null
+    } catch {
+        $vv = $null
+    }
+    $ErrorActionPreference = $prevEAP
+
     if ($LASTEXITCODE -eq 0 -and $vv) {
         $p = $vv.Trim().Split('.')
         if ([int]$p[0] -eq 3 -and [int]$p[1] -ge 10) { $recreate = $false }
     }
     if ($recreate) {
-        Write-Host "==> Existing .venv uses an old Python; recreating..." -ForegroundColor Yellow
+        Write-Host "==> Existing .venv is old or broken; recreating..." -ForegroundColor Yellow
         Remove-Item -Recurse -Force ".venv"
     }
 }
