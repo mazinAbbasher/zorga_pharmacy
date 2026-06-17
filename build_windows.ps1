@@ -31,9 +31,13 @@ function Invoke-Py($cmd, [string[]]$rest) {
 # Find a Python 3.10+ interpreter. Tries the 'py' launcher first so a freshly
 # installed 3.12 is used even if an old 'python' is still on PATH.
 function Find-Python {
+    # 'py -3' resolves to the newest installed Python, so it covers 3.14 and any
+    # future version automatically. The explicit entries are fallbacks.
     $candidates = @(
-        @("py", "-3.13"), @("py", "-3.12"), @("py", "-3.11"), @("py", "-3.10"),
-        @("py", "-3"), @("python")
+        @("py", "-3"),
+        @("py", "-3.14"), @("py", "-3.13"), @("py", "-3.12"),
+        @("py", "-3.11"), @("py", "-3.10"),
+        @("python")
     )
     foreach ($c in $candidates) {
         try {
@@ -86,8 +90,26 @@ if ($recreate) {
 Write-Host "==> Installing dependencies (this can take a few minutes)..." -ForegroundColor Cyan
 & $venvPy -m pip install --upgrade pip
 Assert-LastExit "pip upgrade"
-& $venvPy -m pip install -r requirements-desktop.txt
-Assert-LastExit "Installing requirements"
+
+# Core app + build tool must succeed (these are well-supported everywhere).
+& $venvPy -m pip install -r requirements.txt
+Assert-LastExit "Installing core requirements"
+& $venvPy -m pip install "pyinstaller>=6.0"
+Assert-LastExit "Installing PyInstaller"
+
+# Native-window backend is best-effort: on a brand-new Python it may not have a
+# build yet. If it can't install, the app still works by opening in the browser.
+$useNativeWindow = $true
+& $venvPy -m pip install "pywebview>=5.0"
+if ($LASTEXITCODE -ne 0) {
+    $useNativeWindow = $false
+    Write-Host ""
+    Write-Host "WARNING: could not install 'pywebview' for this Python version." -ForegroundColor Yellow
+    Write-Host "         The app will still build and run, but it will open in the" -ForegroundColor Yellow
+    Write-Host "         default web browser instead of a native window." -ForegroundColor Yellow
+    Write-Host "         For a native window, install Python 3.12 and re-run." -ForegroundColor Yellow
+    Write-Host ""
+}
 
 Write-Host "==> Collecting static files..." -ForegroundColor Cyan
 $env:DJANGO_SETTINGS_MODULE = "config.settings"

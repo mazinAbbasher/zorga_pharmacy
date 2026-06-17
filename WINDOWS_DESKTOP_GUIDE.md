@@ -30,17 +30,24 @@ use it on that machine or copy the result to the client's PC.
 > NOT work** — Django 5.2 refuses to install on it, which is the cause of the
 > `Could not find a version that satisfies the requirement Django` error.
 
-1. Download Python 3.12 from <https://www.python.org/downloads/windows/>.
+1. Download Python from <https://www.python.org/downloads/windows/>
+   (3.10–3.13 are the most battle-tested; 3.12 is the safest choice).
 2. Run the installer and **tick "Add python.exe to PATH"** before clicking Install.
 3. Verify in **PowerShell**:
    ```powershell
-   py -3.12 --version
+   py -3 --version
    ```
-   You should see `Python 3.12.x`. (The build script auto-detects the newest
-   installed Python via the `py` launcher, so an older `python` left on PATH is
-   fine — but if you previously ran the build with Python 3.9, delete the old
-   environment first: `Remove-Item -Recurse -Force .venv`. The script also does
-   this for you automatically.)
+   You should see `Python 3.10` or newer. (The build script auto-detects the
+   newest installed Python via the `py` launcher, so an older `python` left on
+   PATH is fine — and if you previously ran the build with Python 3.9 it
+   automatically discards that old `.venv` and rebuilds it.)
+
+> **Using a brand-new Python (e.g. 3.14)?** It will work, but the packaging
+> tools (`PyInstaller`, and the native-window library `pywebview`) sometimes
+> don't have ready-made builds for a just-released Python yet. If `build_windows.ps1`
+> fails while **installing dependencies** with an error like *"no matching
+> distribution"* or a compiler error for `pywebview`/`pythonnet`, install
+> **Python 3.12** instead and re-run — everything is verified to work there.
 
 ### 1.2 Install Git (to clone the repo)
 - Download from <https://git-scm.com/download/win> and install with defaults.

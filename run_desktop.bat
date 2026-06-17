@@ -15,8 +15,11 @@ if not exist ".venv\" (
     %PY% -m venv .venv
     if errorlevel 1 ( echo Failed to create venv. Install Python 3.10+. & pause & exit /b 1 )
     .venv\Scripts\python -m pip install --upgrade pip
-    .venv\Scripts\python -m pip install -r requirements-desktop.txt
-    if errorlevel 1 ( echo Dependency install failed. & pause & exit /b 1 )
+    .venv\Scripts\python -m pip install -r requirements.txt
+    if errorlevel 1 ( echo Core dependency install failed. & pause & exit /b 1 )
+    REM Native window is best-effort; app falls back to the browser without it.
+    .venv\Scripts\python -m pip install "pywebview>=5.0"
+    if errorlevel 1 ( echo Note: pywebview unavailable - app will open in browser. )
 )
 
 .venv\Scripts\python desktop.py
