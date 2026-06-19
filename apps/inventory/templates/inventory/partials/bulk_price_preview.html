@@ -1,0 +1,75 @@
+{% if invalid %}
+<div class="bg-red-50 rounded-[2rem] border border-red-100 p-8 text-center min-h-[18rem] flex flex-col items-center justify-center">
+    <div class="w-14 h-14 rounded-2xl bg-white border border-red-100 flex items-center justify-center text-red-500 mb-4">
+        <i data-lucide="alert-triangle" class="w-7 h-7"></i>
+    </div>
+    <p class="text-sm font-bold text-red-700">Please fix the form</p>
+    <ul class="text-xs text-red-600 mt-2 space-y-1">
+        {% for field in form %}{% for e in field.errors %}<li>{{ field.label }}: {{ e }}</li>{% endfor %}{% endfor %}
+        {% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+</div>
+{% elif not has_results %}
+<div class="bg-amber-50/70 rounded-[2rem] border border-amber-100 p-8 text-center min-h-[18rem] flex flex-col items-center justify-center">
+    <div class="w-14 h-14 rounded-2xl bg-white border border-amber-100 flex items-center justify-center text-amber-500 mb-4">
+        <i data-lucide="package-x" class="w-7 h-7"></i>
+    </div>
+    <p class="text-sm font-bold text-amber-700">No products match</p>
+    <p class="text-xs text-amber-600 mt-1">Nothing fits this selection, so there's nothing to update.</p>
+</div>
+{% else %}
+<div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden">
+    <div class="p-7 bg-gradient-to-br from-accent-600 to-accent-700 text-white">
+        <div class="flex items-center gap-2 text-accent-100 text-[10px] font-black uppercase tracking-[0.2em]">
+            {% if direction == 'increase' %}<i data-lucide="trending-up" class="w-4 h-4"></i> Increase{% else %}<i data-lucide="trending-down" class="w-4 h-4"></i> Decrease{% endif %}
+            <span>by {{ percentage|floatformat:"-2" }}%</span>
+        </div>
+        <div class="flex items-end gap-2 mt-2">
+            <span class="text-5xl font-black leading-none">{{ product_count }}</span>
+            <span class="text-sm font-bold text-accent-100 mb-1">product{{ product_count|pluralize }} affected</span>
+        </div>
+        <p class="text-xs text-accent-100/80 mt-2 font-medium">
+            {{ batch_count }} batch price record{{ batch_count|pluralize }} will be updated.
+        </p>
+    </div>
+
+    <div class="p-5">
+        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Sample preview</p>
+        <div class="space-y-1">
+            {% for s in samples %}
+            <div class="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-slate-50">
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-slate-800 truncate">{{ s.name }}</p>
+                    {% if s.batch %}<p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Batch {{ s.batch }}</p>{% endif %}
+                </div>
+                <div class="flex items-center gap-2 text-sm font-bold shrink-0 ml-3">
+                    <span class="text-slate-400 line-through">{{ s.old_price|floatformat:2 }}</span>
+                    <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-300"></i>
+                    <span class="{% if direction == 'increase' %}text-green-600{% else %}text-red-600{% endif %}">{{ s.new_price|floatformat:2 }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if extra_count %}
+        <p class="text-xs text-slate-400 text-center mt-3">…and {{ extra_count }} more not shown</p>
+        {% endif %}
+
+        <!-- Apply: a plain POST so we redirect with a success message (re-validated server-side) -->
+        <form method="post" action="{% url 'inventory:bulk_price' %}" class="mt-5"
+            onsubmit="return confirm('Apply this price change to {{ product_count }} product(s)? This cannot be undone automatically.');">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="apply">
+            <input type="hidden" name="direction" value="{{ form.direction.value }}">
+            <input type="hidden" name="percentage" value="{{ form.percentage.value }}">
+            <input type="hidden" name="scope" value="{{ form.scope.value }}">
+            <input type="hidden" name="category" value="{{ form.category.value|default_if_none:'' }}">
+            <input type="hidden" name="supplier" value="{{ form.supplier.value|default_if_none:'' }}">
+            <button type="submit"
+                class="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-primary-950 hover:bg-primary-900 text-white font-bold text-sm uppercase tracking-wider transition-all active:scale-[0.99] shadow-lg">
+                <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                <span>Apply to {{ product_count }} Product{{ product_count|pluralize }}</span>
+            </button>
+        </form>
+    </div>
+</div>
+{% endif %}

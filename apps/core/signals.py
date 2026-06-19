@@ -39,24 +39,24 @@ def update_customer_balance_on_financial_event(sender, instance, **kwargs):
     customer = instance.customer
     if not customer: return
     
-    # Absolute recalculation: (Non-refunded Credit Sales) - (Payments)
-    total_credit_sales = Sale.objects.filter(
-        customer=customer, 
-        payment_method='CREDIT', 
-        is_refunded=False
-    ).aggregate(models.Sum('total_amount'))['total_amount__sum'] or Decimal('0.00')
-    
-    total_discounts = Sale.objects.filter(
-        customer=customer, 
-        payment_method='CREDIT', 
-        is_refunded=False
-    ).aggregate(models.Sum('discount'))['discount__sum'] or Decimal('0.00')
-    
+    # Absolute recalculation of debt: for each non-refunded credit sale the
+    # customer owes (total - discount - value of any returned items).
+    credit_sales = Sale.objects.filter(
+        customer=customer,
+        payment_method='CREDIT',
+        is_refunded=False,
+    ).prefetch_related('items')
+
+    total_owed = sum(
+        (s.total_amount - s.discount - s.refunded_amount for s in credit_sales),
+        Decimal('0.00'),
+    )
+
     total_payments = CustomerPayment.objects.filter(
         customer=customer
     ).aggregate(models.Sum('amount'))['amount__sum'] or Decimal('0.00')
-    
+
     # Direct DB update to prevent interference from stale model instances
     Customer.objects.filter(pk=customer.pk).update(
-        outstanding_balance=(total_credit_sales - total_discounts) - total_payments
+        outstanding_balance=total_owed - total_payments
     )

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Bulk Price Update | Pharmacy System{% endblock %}
+{% block header_title %}Bulk Price Update{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
+
+    <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-accent-50 flex items-center justify-center text-accent-600 shrink-0">
+            <i data-lucide="percent" class="w-6 h-6"></i>
+        </div>
+        <div>
+            <h2 class="text-2xl font-black text-slate-900">Adjust Sale Prices in Bulk</h2>
+            <p class="text-sm font-medium text-slate-400 mt-1 max-w-2xl">
+                Increase or decrease the sale price of many products at once. Pick a percentage and an audience,
+                preview how many products are affected, then apply — all in a single, instant update.
+            </p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <!-- Form -->
+        <div class="lg:col-span-3">
+            <div class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-8">
+                <form id="bulk-price-form" method="post"
+                    hx-post="{% url 'inventory:bulk_price' %}"
+                    hx-target="#preview-panel" hx-swap="innerHTML">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="preview">
+
+                    {% if form.non_field_errors %}
+                    <div class="mb-6 p-4 rounded-2xl bg-red-50 border border-red-100 text-sm font-semibold text-red-700">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Direction + percentage -->
+                    <div class="space-y-2 mb-6">
+                        <label class="block text-sm font-semibold text-slate-700">Adjustment</label>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="sm:w-40">
+                                {% render_field form.direction class="input" %}
+                                {% for e in form.direction.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                            </div>
+                            <div class="flex-1">
+                                <div class="relative">
+                                    {% render_field form.percentage class="input pr-10" placeholder="e.g. 10" %}
+                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                                </div>
+                                {% for e in form.percentage.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Scope -->
+                    <div class="space-y-2 mb-6">
+                        <label class="block text-sm font-semibold text-slate-700">Which products?</label>
+                        {% render_field form.scope class="input" id="id_scope" onchange="toggleScopeFields()" %}
+                        {% for e in form.scope.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+
+                    <!-- Category (conditional) -->
+                    <div id="category-wrap" class="space-y-2 mb-6 hidden">
+                        <label class="block text-sm font-semibold text-slate-700">Category</label>
+                        {% render_field form.category class="input" %}
+                        {% for e in form.category.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+
+                    <!-- Supplier (conditional) -->
+                    <div id="supplier-wrap" class="space-y-2 mb-8 hidden">
+                        <label class="block text-sm font-semibold text-slate-700">Supplier</label>
+                        {% render_field form.supplier class="input" %}
+                        {% for e in form.supplier.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+
+                    <button type="submit"
+                        class="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-accent-600 hover:bg-accent-700 text-white font-bold text-sm uppercase tracking-wider transition-all active:scale-[0.99] shadow-lg shadow-accent-600/20">
+                        <i data-lucide="search-check" class="w-5 h-5"></i>
+                        <span>Preview Affected Products</span>
+                        <span class="htmx-indicator ml-1"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i></span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preview / confirmation -->
+        <div class="lg:col-span-2">
+            <div id="preview-panel">
+                {% if show_preview %}
+                    {% include 'inventory/partials/bulk_price_preview.html' %}
+                {% else %}
+                <div class="bg-slate-50/70 rounded-[2rem] border border-dashed border-slate-200 p-8 text-center h-full flex flex-col items-center justify-center min-h-[18rem]">
+                    <div class="w-14 h-14 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-300 mb-4">
+                        <i data-lucide="calculator" class="w-7 h-7"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-slate-500">No preview yet</p>
+                    <p class="text-xs text-slate-400 mt-1 max-w-xs">Choose your options and hit
+                        <span class="font-bold">Preview</span> to see how many products will change before anything is applied.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleScopeFields() {
+        const scope = document.getElementById('id_scope').value;
+        document.getElementById('category-wrap').classList.toggle('hidden', scope !== 'category');
+        document.getElementById('supplier-wrap').classList.toggle('hidden', scope !== 'supplier');
+    }
+    toggleScopeFields();
+    if (window.lucide) lucide.createIcons();
+</script>
+{% endblock %}

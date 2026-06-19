@@ -7,6 +7,63 @@ from drugs.models import Drug, Category, Batch
 from inventory.models import StockMovement
 from pos.models import Sale, SaleItem
 from users.models import User
+from customers.models import Customer
+
+
+class SaleReturnTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="cash", password="pw12345", role="PHARMACIST")
+        self.client = Client()
+        self.client.login(username="cash", password="pw12345")
+        self.cat = Category.objects.create(name="General")
+        self.drug = Drug.objects.create(trade_name="Panadol", category=self.cat)
+        self.batch = Batch.objects.create(
+            drug=self.drug, batch_number="B1", purchase_price=Decimal("5"),
+            selling_price=Decimal("10"), quantity=10,
+            expiry_date=date.today() + timedelta(days=200),
+        )
+
+    def _sale(self, qty=4, customer=None, method="CASH"):
+        sale = Sale.objects.create(cashier=self.user, customer=customer,
+                                   total_amount=Decimal("10") * qty, payment_method=method)
+        SaleItem.objects.create(sale=sale, drug=self.drug, quantity=qty,
+                                unit_price=Decimal("10"), unit_cost=Decimal("5"))
+        return sale
+
+    def test_partial_return_restores_stock(self):
+        self.batch.quantity = 6  # 4 were sold
+        self.batch.save()
+        sale = self._sale(qty=4)
+        r = self.client.post(f"/pos/return/{sale.id}/", {f"return_qty_{sale.items.first().id}": "2"})
+        self.assertEqual(r.status_code, 200)
+        self.drug.refresh_from_db()
+        self.assertEqual(self.drug.total_quantity, 8)  # 6 + 2 returned
+        item = sale.items.first(); item.refresh_from_db()
+        self.assertEqual(item.returned_quantity, 2)
+        sale.refresh_from_db()
+        self.assertFalse(sale.is_refunded)
+        self.assertTrue(sale.is_partially_refunded)
+
+    def test_full_return_marks_refunded(self):
+        sale = self._sale(qty=3)
+        self.client.post(f"/pos/return/{sale.id}/", {f"return_qty_{sale.items.first().id}": "3"})
+        sale.refresh_from_db()
+        self.assertTrue(sale.is_refunded)
+
+    def test_cannot_return_more_than_sold(self):
+        sale = self._sale(qty=2)
+        self.client.post(f"/pos/return/{sale.id}/", {f"return_qty_{sale.items.first().id}": "99"})
+        item = sale.items.first(); item.refresh_from_db()
+        self.assertEqual(item.returned_quantity, 2)  # capped at sold qty
+
+    def test_credit_sale_return_reduces_customer_balance(self):
+        cust = Customer.objects.create(name="Ali")
+        sale = self._sale(qty=4, customer=cust, method="CREDIT")
+        cust.refresh_from_db()
+        self.assertEqual(cust.outstanding_balance, Decimal("40"))  # 4 * 10
+        self.client.post(f"/pos/return/{sale.id}/", {f"return_qty_{sale.items.first().id}": "1"})
+        cust.refresh_from_db()
+        self.assertEqual(cust.outstanding_balance, Decimal("30"))  # one unit returned
 
 
 class CheckoutFlowTests(TestCase):

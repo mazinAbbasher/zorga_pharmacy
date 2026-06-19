@@ -5,7 +5,9 @@
     {% for drug in drugs %}
     <div class="search-result-item flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-50 last:border-0 cursor-pointer outline-none hover:bg-accent-50/60 focus:bg-accent-50 transition-colors"
         role="option" tabindex="0" id="drug-{{ drug.id }}" data-drug-id="{{ drug.id }}"
-        hx-post="{% url 'pos:add_to_cart' %}" hx-vals='{"drug_id": "{{ drug.id }}"}' hx-target="#cart-container">
+        hx-post="{% url 'pos:add_to_cart' %}" hx-vals='{"drug_id": "{{ drug.id }}"}' hx-target="#cart-container"
+        onclick="window.focusQuantityOnAdd = '{{ drug.id }}';"
+        onkeydown="if(event.key === 'Enter') window.focusQuantityOnAdd = '{{ drug.id }}';">
         <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 shrink-0 rounded-xl bg-slate-100 text-slate-500 grid place-items-center font-extrabold">
                 {{ drug.trade_name|first|upper }}

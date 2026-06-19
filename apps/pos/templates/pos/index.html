@@ -2,6 +2,21 @@
 
 {% block title %}Terminal | Pharmacy System{% endblock %}
 {% block header_title %}POS Terminal{% endblock %}
+{% block extra_head %}
+<style>
+    @keyframes rowPulse {
+        0% {
+            background-color: rgba(37, 99, 235, 0.15); /* Light blue accent-600 tint */
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+    .row-highlight {
+        animation: rowPulse 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="flex gap-5 h-[calc(100vh-8rem)] min-h-0">
@@ -225,6 +240,58 @@
         const searchInput = document.getElementById('pos-search-input');
         const active = document.activeElement;
 
+        // Quantity input navigation
+        if (active && active.id && active.id.startsWith('quantity-input-')) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                activeElementId = 'pos-search-input';
+                active.blur();
+                focusSearch(true);
+                return;
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                activeElementId = 'pos-search-input';
+                active.blur();
+                focusSearch(false);
+                return;
+            }
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                const inputs = Array.from(document.querySelectorAll('[id^="quantity-input-"]'));
+                const idx = inputs.indexOf(active);
+                let targetInput = null;
+                if (e.key === 'ArrowUp' && idx > 0) {
+                    targetInput = inputs[idx - 1];
+                } else if (e.key === 'ArrowDown' && idx < inputs.length - 1) {
+                    targetInput = inputs[idx + 1];
+                }
+                if (targetInput) {
+                    e.preventDefault();
+                    activeElementId = targetInput.id;
+                    activeElementSelectionStart = 0;
+                    activeElementSelectionEnd = targetInput.value.length;
+                    active.blur(); // Trigger HTMX change on current
+                    targetInput.focus();
+                    targetInput.select();
+                }
+                return;
+            }
+        }
+
+        // Empty search shortcut to jump to cart quantity input
+        if (active === searchInput && searchInput.value.trim() === '') {
+            if (e.key === 'ArrowDown') {
+                const target = document.querySelector('.row-highlight [id^="quantity-input-"]') || 
+                               document.querySelector('[id^="quantity-input-"]');
+                if (target) {
+                    e.preventDefault();
+                    target.focus();
+                    target.select();
+                    return;
+                }
+            }
+        }
+
         // Global shortcuts (ignore while typing in another field)
         if (e.key === 'F2') { e.preventDefault(); focusSearch(false); return; }
         if (e.key === 'F9') {
@@ -286,11 +353,52 @@
         PharmaScanner.open({ title: 'Scan to add items', continuous: true, onScan: submitBarcode });
     }
 
-    /* ---------- Re-init after cart swaps ---------- */
+    /* ---------- Focus tracking and restoration during HTMX swaps ---------- */
+    let activeElementId = null;
+    let activeElementSelectionStart = null;
+    let activeElementSelectionEnd = null;
+
+    document.body.addEventListener('htmx:beforeRequest', (e) => {
+        const active = document.activeElement;
+        if (active && active.id && (active.id.startsWith('quantity-input-') || active.id.startsWith('btn-minus-') || active.id.startsWith('btn-plus-') || active.id.startsWith('btn-remove-') || active.id === 'pos-search-input')) {
+            activeElementId = active.id;
+            if (active.tagName === 'INPUT' && typeof active.selectionStart === 'number') {
+                activeElementSelectionStart = active.selectionStart;
+                activeElementSelectionEnd = active.selectionEnd;
+            } else {
+                activeElementSelectionStart = null;
+                activeElementSelectionEnd = null;
+            }
+        }
+    });
+
+    /* ---------- Re-init after cart swaps & Focus restore ---------- */
     document.body.addEventListener('htmx:afterSwap', (e) => {
         if (window.lucide) lucide.createIcons();
         const id = e.detail.target && e.detail.target.id;
         if (id === 'cart-container' || id === 'cart-summary') updateTotals();
+
+        // 1. Focus restoration for existing elements
+        if (activeElementId) {
+            const el = document.getElementById(activeElementId);
+            if (el) {
+                el.focus();
+                if (activeElementSelectionStart !== null && el.tagName === 'INPUT') {
+                    el.setSelectionRange(activeElementSelectionStart, activeElementSelectionEnd);
+                }
+            }
+            activeElementId = null;
+        }
+
+        // 2. Quick quantity focus when selecting from search results
+        if (window.focusQuantityOnAdd) {
+            const targetInput = document.getElementById(`quantity-input-${window.focusQuantityOnAdd}`);
+            if (targetInput) {
+                targetInput.focus();
+                targetInput.select();
+            }
+            window.focusQuantityOnAdd = null;
+        }
     });
 
     // Dismiss search dropdown on outside click

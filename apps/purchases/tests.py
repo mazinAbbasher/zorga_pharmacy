@@ -97,3 +97,57 @@ class PurchaseFlowTests(TestCase):
         Batch.objects.create(drug=self.fifo, purchase_price=1, selling_price=2,
                              quantity=15, expiry_date=None)
         self.assertEqual(self.fifo.total_quantity, 15)
+
+
+class PurchaseReturnTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_superuser(username="admin", role="ADMIN", password="pw12345")
+        self.client = Client()
+        self.client.login(username="admin", password="pw12345")
+        self.cat = Category.objects.create(name="Meds")
+        self.supplier = Supplier.objects.create(name="Acme")
+        self.drug = Drug.objects.create(trade_name="Amoxil", category=self.cat, dispensing_strategy="FEFO")
+        self.exp = date.today() + timedelta(days=200)
+
+        # Record a purchase (signal adds to supplier balance), create the batch.
+        self.purchase = Purchase.objects.create(
+            supplier=self.supplier, invoice_number="INV-1",
+            received_by=self.admin, total_amount=Decimal("100"),
+        )
+        self.item = PurchaseItem.objects.create(
+            purchase=self.purchase, drug=self.drug, batch_number="B1",
+            quantity=10, purchase_price=Decimal("10"), selling_price=Decimal("15"),
+            expiry_date=self.exp,
+        )
+        self.batch = Batch.objects.create(
+            drug=self.drug, batch_number="B1", purchase_price=Decimal("10"),
+            selling_price=Decimal("15"), quantity=10, expiry_date=self.exp,
+        )
+
+    def test_partial_purchase_return_reduces_stock(self):
+        r = self.client.post(f"/purchases/return/{self.purchase.id}/",
+                             {f"return_qty_{self.item.id}": "4"})
+        self.assertEqual(r.status_code, 200)
+        self.drug.refresh_from_db()
+        self.assertEqual(self.drug.total_quantity, 6)  # 10 - 4
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.returned_quantity, 4)
+
+    def test_purchase_return_reduces_supplier_balance(self):
+        self.supplier.refresh_from_db()
+        self.assertEqual(self.supplier.balance, Decimal("100"))
+        self.client.post(f"/purchases/return/{self.purchase.id}/",
+                         {f"return_qty_{self.item.id}": "5"})
+        self.supplier.refresh_from_db()
+        # net purchase = 100 - (5 * 10) = 50
+        self.assertEqual(self.supplier.balance, Decimal("50"))
+
+    def test_cannot_return_more_than_in_stock(self):
+        self.batch.quantity = 3  # only 3 left (rest sold)
+        self.batch.save()
+        self.client.post(f"/purchases/return/{self.purchase.id}/",
+                         {f"return_qty_{self.item.id}": "10"})
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.returned_quantity, 3)  # only what was in stock
+        self.drug.refresh_from_db()
+        self.assertEqual(self.drug.total_quantity, 0)

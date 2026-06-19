@@ -13,4 +13,5 @@ urlpatterns = [
     path('checkout/', views.checkout, name='checkout'),
     path('invoice/<int:sale_id>/', views.print_invoice, name='print_invoice'),
     path('refund/<int:sale_id>/', views.refund_invoice, name='refund_invoice'),
+    path('return/<int:sale_id>/', views.return_sale, name='return_sale'),
 ]

@@ -1,7 +1,14 @@
 <div class="p-8">
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h3 class="text-2xl font-black text-slate-900 tracking-tight">Purchase Details</h3>
+            <div class="flex items-center gap-3">
+                <h3 class="text-2xl font-black text-slate-900 tracking-tight">Purchase Details</h3>
+                {% if purchase.is_fully_returned %}
+                <span class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-black uppercase tracking-widest">Returned</span>
+                {% elif purchase.returned_amount > 0 %}
+                <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest">Partial Return</span>
+                {% endif %}
+            </div>
             <p class="text-sm font-medium text-slate-500">Invoice: {{ purchase.invoice_number }}</p>
         </div>
         <div class="text-right">
@@ -10,11 +17,16 @@
         </div>
     </div>
 
+    {% if return_done %}
+    <div class="flex items-center gap-2 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl px-4 py-3 mb-6 text-sm font-bold">
+        <i data-lucide="check-circle-2" class="w-5 h-5"></i> Return processed and stock updated.
+    </div>
+    {% endif %}
+
     <!-- Supplier Info -->
     <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 mb-8 flex items-center justify-between">
         <div class="flex items-center space-x-4">
-            <div
-                class="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
+            <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-sm">
                 <i data-lucide="truck" class="w-6 h-6"></i>
             </div>
             <div>
@@ -24,7 +36,7 @@
         </div>
         <div class="text-right">
             <p class="text-xs font-black text-slate-400 uppercase tracking-widest">Recorded By</p>
-            <p class="text-sm font-bold text-slate-700">{{         purchase.received_by.get_full_name|default:purchase.received_by.username }}</p>
+            <p class="text-sm font-bold text-slate-700">{{ purchase.received_by.get_full_name|default:purchase.received_by.username }}</p>
         </div>
     </div>
 
@@ -43,9 +55,14 @@
             <tbody class="divide-y divide-slate-100 border-t border-slate-100">
                 {% for item in purchase.items.all %}
                 <tr class="text-sm font-medium text-slate-700">
-                    <td class="px-6 py-4 font-bold">{{ item.drug.trade_name }}</td>
+                    <td class="px-6 py-4 font-bold">
+                        {{ item.drug.trade_name }}
+                        {% if item.returned_quantity > 0 %}
+                        <span class="ml-1 text-[10px] font-black text-amber-600">({{ item.returned_quantity }} returned)</span>
+                        {% endif %}
+                    </td>
                     <td class="px-6 py-4">
-                        <span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-600">{{               item.batch_number }}</span>
+                        <span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-600">{{ item.batch_number|default:"—" }}</span>
                     </td>
                     <td class="px-6 py-4 text-center">{{ item.quantity }}</td>
                     <td class="px-6 py-4 text-right">SDG {{ item.purchase_price|floatformat:0 }}</td>
@@ -57,9 +74,17 @@
     </div>
 
     <!-- Total -->
-    <div class="flex justify-between items-center pt-6 border-t border-slate-100">
-        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Grand Total</span>
-        <span class="text-3xl font-black text-slate-900 tracking-tight">SDG {{ purchase.total_amount|floatformat:0       }}</span>
+    <div class="space-y-3 pt-6 border-t border-slate-100">
+        {% if purchase.returned_amount > 0 %}
+        <div class="flex justify-between items-center text-sm font-bold text-amber-600">
+            <span>Returned to supplier</span>
+            <span>-SDG {{ purchase.returned_amount|floatformat:0 }}</span>
+        </div>
+        {% endif %}
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">{% if purchase.returned_amount > 0 %}Net Total{% else %}Grand Total{% endif %}</span>
+            <span class="text-3xl font-black text-slate-900 tracking-tight">SDG {{ purchase.net_amount|floatformat:0 }}</span>
+        </div>
     </div>
 
     <!-- Footer Actions -->
@@ -68,6 +93,12 @@
             class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-sm font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
             Close
         </button>
+        {% if not purchase.is_fully_returned %}
+        <button hx-get="{% url 'purchases:return_purchase' purchase.id %}" hx-target="#modal-content"
+            class="px-6 py-3 bg-amber-500 text-white rounded-xl text-sm font-black uppercase tracking-widest hover:bg-amber-600 shadow-lg shadow-amber-500/20 transition-all flex items-center">
+            <i data-lucide="undo-2" class="w-4 h-4 mr-2"></i> Return
+        </button>
+        {% endif %}
     </div>
 </div>
 

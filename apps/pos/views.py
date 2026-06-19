@@ -11,6 +11,7 @@ from inventory.models import StockMovement
 from django.template.defaultfilters import floatformat
 from django.utils import timezone
 from django.db.models import Q
+from core.decorators import pharmacist_or_admin
 
 
 def _cart_response(request, error=None, trigger=None):
@@ -105,10 +106,11 @@ def add_to_cart(request):
             'name': drug.trade_name
         }
 
+    request.session['last_modified_drug_id'] = drug.id
     request.session['cart'] = cart
     request.session.modified = True
 
-    return _cart_response(request, trigger={'scanSuccess': {'name': drug.trade_name}})
+    return _cart_response(request, trigger={'scanSuccess': {'name': drug.trade_name, 'drug_id': drug.id}})
 
 @login_required
 def update_cart(request, drug_id):
@@ -130,6 +132,7 @@ def update_cart(request, drug_id):
                 trigger = {'posToast': {'message': msg, 'level': 'warning'}}
                 quantity = drug.total_quantity
             cart[str_id]['quantity'] = quantity
+            request.session['last_modified_drug_id'] = drug.id
         else:
             del cart[str_id]
 
@@ -296,6 +299,80 @@ def refund_invoice(request, sale_id):
     
     return render(request, 'pos/confirm_refund.html', {'sale': sale})
 
+
+def _restore_stock(drug, qty, unit_price, unit_cost):
+    """Add returned units back to stock (newest batch, or a fresh one)."""
+    batch = drug.batches.all().order_by('-created_at').first()
+    if batch:
+        batch.quantity += qty
+        batch.save()
+    else:
+        from drugs.models import Batch
+        Batch.objects.create(
+            drug=drug, batch_number='', quantity=qty,
+            purchase_price=unit_cost or 0, selling_price=unit_price or 0,
+            expiry_date=None,
+        )
+
+
+@login_required
+@pharmacist_or_admin
+@transaction.atomic
+def return_sale(request, sale_id):
+    """Return some (or all) items from a completed sale and restore stock."""
+    sale = get_object_or_404(Sale, pk=sale_id)
+
+    if request.method == 'POST':
+        if sale.is_refunded:
+            messages.warning(request, "This sale is already fully refunded.")
+            return render(request, 'transactions/partials/sale_detail_modal.html', {'sale': sale})
+
+        returned_count = 0
+        refunded_value = Decimal('0.00')
+        for item in sale.items.all():
+            try:
+                qty = int(request.POST.get(f'return_qty_{item.id}', 0) or 0)
+            except (ValueError, TypeError):
+                qty = 0
+            qty = max(0, min(qty, item.returnable_quantity))
+            if qty == 0:
+                continue
+
+            _restore_stock(item.drug, qty, item.unit_price, item.unit_cost)
+            item.returned_quantity += qty
+            item.save()
+            refunded_value += item.unit_price * qty
+            returned_count += qty
+
+            StockMovement.objects.create(
+                drug=item.drug, movement_type='RETURN', quantity=qty,
+                reference_id=f"RET-SALE-{sale.id}", user=request.user,
+                notes=f"Returned from Sale #{sale.id}",
+            )
+
+        if returned_count == 0:
+            messages.error(request, "Select at least one item quantity to return.")
+            return render(request, 'pos/partials/sale_return_modal.html', {'sale': sale})
+
+        # Fully refunded once every line has been returned.
+        if all(i.returnable_quantity == 0 for i in sale.items.all()):
+            sale.is_refunded = True
+            sale.refund_timestamp = timezone.now()
+        # Re-save to trigger customer-balance recalculation (credit sales).
+        sale.save()
+
+        messages.success(
+            request,
+            f"Returned {returned_count} item(s) from Sale #{sale.id} (SDG {floatformat(refunded_value, 0)}).",
+        )
+        response = render(request, 'transactions/partials/sale_detail_modal.html',
+                          {'sale': sale, 'return_done': True})
+        response['HX-Trigger'] = 'refreshTransactions'
+        return response
+
+    return render(request, 'pos/partials/sale_return_modal.html', {'sale': sale})
+
+
 def _get_cart_context(request):
     """Simple cart context based on session data"""
     cart = request.session.get('cart', {})
@@ -320,7 +397,11 @@ def _get_cart_context(request):
         })
         subtotal += total
         
+    last_modified_drug_id = request.session.pop('last_modified_drug_id', None)
+    request.session.modified = True
+        
     return {
         'cart_items': cart_items,
-        'subtotal': subtotal
+        'subtotal': subtotal,
+        'last_modified_drug_id': last_modified_drug_id
     }

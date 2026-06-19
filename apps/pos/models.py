@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from drugs.models import Drug
 from django.utils import timezone
+from decimal import Decimal
 
 class Sale(models.Model):
     PAYMENT_METHODS = (
@@ -26,10 +27,32 @@ class Sale(models.Model):
         return self.total_amount - self.discount
 
     @property
+    def refunded_amount(self):
+        """Gross value of items returned from this sale."""
+        return sum(
+            (item.unit_price * item.returned_quantity for item in self.items.all()),
+            Decimal('0.00'),
+        )
+
+    @property
+    def is_partially_refunded(self):
+        return not self.is_refunded and self.refunded_amount > 0
+
+    @property
+    def net_amount(self):
+        """Amount the sale is still worth after returns (before discount)."""
+        return self.total_amount - self.refunded_amount
+
+    @property
     def net_profit(self):
         if self.is_refunded:
             return Decimal('0.00')
-        item_profit = sum(item.total_price - item.total_cost for item in self.items.all())
+        # Profit only on the quantity that wasn't returned.
+        item_profit = sum(
+            ((item.quantity - item.returned_quantity) * (item.unit_price - item.unit_cost)
+             for item in self.items.all()),
+            Decimal('0.00'),
+        )
         return item_profit - self.discount
 
     def __str__(self):
@@ -43,6 +66,11 @@ class SaleItem(models.Model):
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) # Purchase Price at time of sale
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    returned_quantity = models.PositiveIntegerField(default=0)
+
+    @property
+    def returnable_quantity(self):
+        return max(self.quantity - self.returned_quantity, 0)
 
     def save(self, *args, **kwargs):
         self.total_price = self.quantity * self.unit_price
