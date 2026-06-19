@@ -131,14 +131,16 @@
         const strat = DRUG_STRATEGY[sel.value];
 
         if (strat === 'FIFO') {
+            // FIFO: no batch number and no expiry date needed.
             if (batch) { batch.value = ''; batch.disabled = true; batch.placeholder = 'Not used (FIFO)'; batch.classList.add('opacity-50'); }
-            if (expiry) { expiry.required = false; }
+            if (expiry) { expiry.value = ''; expiry.disabled = true; expiry.required = false; expiry.classList.add('opacity-50'); }
         } else if (strat === 'FEFO') {
+            // FEFO: batch number and expiry date are required.
             if (batch) { batch.disabled = false; batch.required = true; batch.placeholder = 'Batch # *'; batch.classList.remove('opacity-50'); }
-            if (expiry) { expiry.required = true; }
+            if (expiry) { expiry.disabled = false; expiry.required = true; expiry.classList.remove('opacity-50'); }
         } else {
             if (batch) { batch.disabled = false; batch.required = false; batch.placeholder = 'Batch #'; batch.classList.remove('opacity-50'); }
-            if (expiry) { expiry.required = false; }
+            if (expiry) { expiry.disabled = false; expiry.required = false; expiry.classList.remove('opacity-50'); }
         }
     }
 
