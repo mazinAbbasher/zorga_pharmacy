@@ -202,15 +202,14 @@ def checkout(request):
         payment_method=payment_method
     )
     
-    # 3. Deduct Stock and Create SaleItems (FIFO)
-    today = timezone.now().date()
+    # 3. Deduct Stock and Create SaleItems (per product FIFO/FEFO strategy)
     for drug_id, item in cart.items():
         drug = Drug.objects.get(id=drug_id)
         qty_to_deduct = item['quantity']
-        
-        # FIFO: oldest batch first, excluding expired
-        batches = drug.batches.filter(quantity__gt=0, expiry_date__gte=today).order_by('created_at')
-        
+
+        # Oldest-received (FIFO) or nearest-expiry (FEFO) first, excluding expired
+        batches = drug.active_batches()
+
         for batch in batches:
             if qty_to_deduct <= 0: break
                 

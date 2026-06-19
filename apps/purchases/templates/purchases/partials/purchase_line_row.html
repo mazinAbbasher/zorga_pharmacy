@@ -1,0 +1,38 @@
+{% load static %}
+<tr class="purchase-line border-b border-slate-100 last:border-0 align-top">
+    {{ form.id }}
+    <td class="py-2 pr-2 w-[26%]">
+        {{ form.drug }}
+        {% if form.drug.errors %}<p class="text-[11px] font-bold text-red-500 mt-1">{{ form.drug.errors.0 }}</p>{% endif %}
+    </td>
+    <td class="py-2 px-1.5">
+        {{ form.batch_number }}
+    </td>
+    <td class="py-2 px-1.5 w-[9%]">
+        {{ form.quantity }}
+        {% if form.quantity.errors %}<p class="text-[11px] font-bold text-red-500 mt-1">{{ form.quantity.errors.0 }}</p>{% endif %}
+    </td>
+    <td class="py-2 px-1.5 w-[12%]">
+        {{ form.purchase_price }}
+        {% if form.purchase_price.errors %}<p class="text-[11px] font-bold text-red-500 mt-1">{{ form.purchase_price.errors.0 }}</p>{% endif %}
+    </td>
+    <td class="py-2 px-1.5 w-[12%]">
+        {{ form.selling_price }}
+        {% if form.selling_price.errors %}<p class="text-[11px] font-bold text-red-500 mt-1">{{ form.selling_price.errors.0 }}</p>{% endif %}
+    </td>
+    <td class="py-2 px-1.5 w-[14%]">
+        {{ form.expiry_date }}
+        {% if form.expiry_date.errors %}<p class="text-[11px] font-bold text-red-500 mt-1">{{ form.expiry_date.errors.0 }}</p>{% endif %}
+    </td>
+    <td class="py-2 px-1.5 text-right whitespace-nowrap">
+        <span class="line-total text-sm font-extrabold text-slate-900">SDG 0</span>
+    </td>
+    <td class="py-2 pl-1.5 text-right">
+        <span class="hidden">{{ form.DELETE }}</span>
+        <button type="button" onclick="removeLine(this)"
+            class="remove-line w-8 h-8 grid place-items-center text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all active:scale-90"
+            aria-label="Remove line">
+            <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+    </td>
+</tr>

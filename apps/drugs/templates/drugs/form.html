@@ -44,6 +44,12 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Dispensing Strategy</label>
+                    {% render_field form.dispensing_strategy class="input" %}
+                    <p class="text-xs text-slate-400 mt-1">FEFO needs batch # + expiry; FIFO needs neither.</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Min Stock Alert</label>
                     {% render_field form.minimum_stock_alert class="input" placeholder="10" %}
                 </div>

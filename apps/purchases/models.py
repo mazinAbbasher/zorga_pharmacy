@@ -18,11 +18,11 @@ class Purchase(models.Model):
 class PurchaseItem(models.Model):
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='items')
     drug = models.ForeignKey(Drug, on_delete=models.PROTECT)
-    batch_number = models.CharField(max_length=100)
+    batch_number = models.CharField(max_length=100, blank=True, default='')
     quantity = models.IntegerField()
     purchase_price = models.DecimalField(max_digits=12, decimal_places=2)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2)
-    expiry_date = models.DateField()
+    expiry_date = models.DateField(null=True, blank=True)
     total_price = models.DecimalField(max_digits=12, decimal_places=2)
 
     def save(self, *args, **kwargs):

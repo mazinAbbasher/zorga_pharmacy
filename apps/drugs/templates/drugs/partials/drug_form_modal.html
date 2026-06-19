@@ -52,6 +52,12 @@
             {% endif %}
         </div>
 
+        <div class="space-y-2">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Dispensing Strategy</label>
+            {{ form.dispensing_strategy }}
+            <p class="text-[10px] text-slate-400 pl-2">FEFO (recommended for medicines): sells nearest-expiry first — batch # &amp; expiry required at purchase. FIFO: sells oldest received first — no batch # needed.</p>
+        </div>
+
         <div class="space-y-2 border-t border-slate-100 pt-6">
             <p
                 class="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center">

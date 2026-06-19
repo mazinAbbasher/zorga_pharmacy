@@ -8,7 +8,7 @@ class DrugForm(forms.ModelForm):
         model = Drug
         fields = [
             'trade_name', 'scientific_name', 'manufacturer', 'category',
-            'barcode', 'minimum_stock_alert'
+            'barcode', 'dispensing_strategy', 'minimum_stock_alert'
         ]
 
     def clean_barcode(self):

@@ -17,6 +17,7 @@ class DrugBarcodeFormTests(TestCase):
             "trade_name": "Item",
             "category": self.category.id,
             "barcode": "",
+            "dispensing_strategy": "FEFO",
             "minimum_stock_alert": 10,
         }
         data.update(over)
