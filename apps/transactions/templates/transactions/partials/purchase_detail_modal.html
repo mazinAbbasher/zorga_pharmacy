@@ -65,8 +65,8 @@
                         <span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-600">{{ item.batch_number|default:"—" }}</span>
                     </td>
                     <td class="px-6 py-4 text-center">{{ item.quantity }}</td>
-                    <td class="px-6 py-4 text-right">SDG {{ item.purchase_price|floatformat:0 }}</td>
-                    <td class="px-6 py-4 text-right font-black">SDG {{ item.total_price|floatformat:0 }}</td>
+                    <td class="px-6 py-4 text-right">SDG {{ item.purchase_price|floatformat:0|intcomma }}</td>
+                    <td class="px-6 py-4 text-right font-black">SDG {{ item.total_price|floatformat:0|intcomma }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -78,12 +78,12 @@
         {% if purchase.returned_amount > 0 %}
         <div class="flex justify-between items-center text-sm font-bold text-amber-600">
             <span>Returned to supplier</span>
-            <span>-SDG {{ purchase.returned_amount|floatformat:0 }}</span>
+            <span>-SDG {{ purchase.returned_amount|floatformat:0|intcomma }}</span>
         </div>
         {% endif %}
         <div class="flex justify-between items-center">
             <span class="text-xs font-black text-slate-400 uppercase tracking-widest">{% if purchase.returned_amount > 0 %}Net Total{% else %}Grand Total{% endif %}</span>
-            <span class="text-3xl font-black text-slate-900 tracking-tight">SDG {{ purchase.net_amount|floatformat:0 }}</span>
+            <span class="text-3xl font-black text-slate-900 tracking-tight">SDG {{ purchase.net_amount|floatformat:0|intcomma }}</span>
         </div>
     </div>
 

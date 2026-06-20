@@ -73,6 +73,15 @@ class Drug(models.Model):
         return self.stock_status == 'LOW_STOCK'
 
     @property
+    def is_out_of_stock(self):
+        return self.stock_status == 'OUT_OF_STOCK'
+
+    @property
+    def needs_restock(self):
+        # Low *or* out of stock: sellable quantity at or below the alert threshold.
+        return self.stock_status != 'IN_STOCK'
+
+    @property
     def dispense_order(self):
         """Batch ordering for selling, based on this product's strategy.
 
@@ -95,6 +104,16 @@ class Drug(models.Model):
         # Price of the next batch to be dispensed (per FIFO/FEFO strategy).
         active_batch = self.active_batches().first()
         return active_batch.selling_price if active_batch else Decimal('0.00')
+
+    @property
+    def current_buy_price(self):
+        # Current buy (purchase) cost used to value on-hand stock. Read from the
+        # next batch to be dispensed; a bulk/manual revaluation keeps every
+        # active batch in sync, so this acts as the per-product cost. Historical
+        # invoices (PurchaseItem) and past sale costs (SaleItem.unit_cost) keep
+        # their own frozen values and are unaffected by changing this.
+        active_batch = self.active_batches().first()
+        return active_batch.purchase_price if active_batch else Decimal('0.00')
 
     @property
     def nearest_expiry_date(self):

@@ -20,7 +20,7 @@
             </div>
         </div>
         <div class="text-right shrink-0">
-            <div class="text-sm font-extrabold text-slate-900">SDG {{ drug.current_price|floatformat:0 }}</div>
+            <div class="text-sm font-extrabold text-slate-900">SDG {{ drug.current_price|floatformat:0|intcomma }}</div>
             {% if drug.total_quantity <= 0 %}
             <div class="text-[11px] font-bold text-red-500">Out of stock</div>
             {% elif drug.is_low_stock %}

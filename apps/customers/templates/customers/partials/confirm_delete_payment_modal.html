@@ -4,7 +4,7 @@
     </div>
     <h3 class="text-2xl font-black text-slate-900 tracking-tight mb-2">Delete Payment Record?</h3>
     <p class="text-slate-500 font-medium mb-8 leading-relaxed">
-        You are about to remove a payment of <b class="text-slate-900">SDG {{ payment.amount|floatformat:0 }}</b> from
+        You are about to remove a payment of <b class="text-slate-900">SDG {{ payment.amount|floatformat:0|intcomma }}</b> from
         <b>{{ customer.name }}</b>.<br>
         This action will <b>recalculate the customer balance</b> automatically.
     </p>

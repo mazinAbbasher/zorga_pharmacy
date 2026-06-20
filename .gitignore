@@ -37,3 +37,8 @@ build/
 dist/
 *.log
 secret_key.txt
+
+# Licensing — the PRIVATE signing key must never be committed or shipped.
+private_key.json
+# Generated/issued client licenses (don't commit these either).
+*license.key

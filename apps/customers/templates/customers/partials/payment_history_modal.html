@@ -19,13 +19,13 @@
                 <div
                     class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm border 
                     {% if entry.type == 'DEBT' %}bg-red-100 text-red-600 border-red-200{% else %}bg-green-100 text-green-600 border-green-200{% endif %}">
-                    <i data-lucide="{% if entry.type == 'DEBT' %}shopping-cart{% else %}banknote{% endif %}"
+                    <i data-lucide="{% if entry.type == 'DEBT' %}shopping-cart{% elif entry.type == 'RETURN' %}rotate-ccw{% else %}banknote{% endif %}"
                         class="w-5 h-5"></i>
                 </div>
                 <div>
                     <div class="text-sm font-bold text-slate-900">{{ entry.date|date:"F d, Y" }}</div>
                     <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {{ entry.reference }} {% if entry.type == 'DEBT' %}(DEBT){% else %}(CREDIT){% endif %}
+                        {{ entry.reference }} {% if entry.type == 'DEBT' %}(DEBT){% elif entry.type == 'RETURN' %}(RETURN){% else %}(CREDIT){% endif %}
                     </div>
                 </div>
             </div>
@@ -34,7 +34,7 @@
                 <div class="text-right">
                     <div
                         class="text-lg font-black {% if entry.type == 'DEBT' %}text-red-500{% else %}text-green-600{% endif %}">
-                        {% if entry.type == 'DEBT' %}-{% else %}+{% endif %}SDG {{ entry.amount|floatformat:0 }}
+                        {% if entry.type == 'DEBT' %}-{% else %}+{% endif %}SDG {{ entry.amount|floatformat:0|intcomma }}
                     </div>
                     {% if entry.notes %}
                     <div class="text-[10px] font-medium text-slate-400 italic">{{ entry.notes }}</div>

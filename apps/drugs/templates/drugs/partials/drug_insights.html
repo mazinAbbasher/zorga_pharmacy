@@ -16,7 +16,7 @@
                     <div class="h-px bg-slate-50"></div>
                     <div class="flex justify-between items-center text-sm">
                         <span class="text-slate-500 font-medium font-bold">Inventory Value</span>
-                        <span class="font-black text-accent-600">SDG {{ drug.total_inventory_value|floatformat:2}}</span>
+                        <span class="font-black text-accent-600">SDG {{ drug.total_inventory_value|floatformat:0|intcomma}}</span>
                     </div>
                 </div>
             </div>
@@ -77,7 +77,7 @@
                                             {{ batch.expiry_date|date:"M d, Y" }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 font-mono text-slate-500 text-xs">SDG {{ batch.purchase_price}}</td>
+                                    <td class="px-6 py-4 font-mono text-slate-500 text-xs">SDG {{ batch.purchase_price|floatformat:0|intcomma }}</td>
                                     <td class="px-6 py-4">
                                         {% if batch.quantity == 0 %}
                                         <span

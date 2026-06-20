@@ -55,6 +55,12 @@
                 </div>
 
                 <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Current Buy Price</label>
+                    {% render_field form.buy_price class="input" placeholder="0.00" %}
+                    <p class="text-xs text-slate-400 mt-1">Revalues active stock; past purchase invoices are unaffected.</p>
+                </div>
+
+                <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Current Sale Price</label>
                     {% render_field form.sale_price class="input" placeholder="0.00" %}
                 </div>

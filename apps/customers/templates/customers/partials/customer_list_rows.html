@@ -35,7 +35,7 @@
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Credit Exposure</span>
             <span
                 class="text-lg font-black {% if customer.outstanding_balance > 0 %}text-red-500 animate-pulse{% else %}text-slate-900{% endif %}">
-                SDG {{ customer.outstanding_balance|floatformat:0 }}
+                SDG {{ customer.outstanding_balance|floatformat:0|intcomma }}
             </span>
         </div>
     </td>

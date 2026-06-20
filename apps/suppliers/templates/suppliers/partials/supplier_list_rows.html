@@ -36,7 +36,7 @@
             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payable Balance</span>
             <span
                 class="text-lg font-black {% if supplier.balance > 0 %}text-red-500 animate-pulse{% else %}text-slate-900{% endif %}">
-                SDG {{ supplier.balance|floatformat:0 }}
+                SDG {{ supplier.balance|floatformat:0|intcomma }}
             </span>
         </div>
     </td>

@@ -1,11 +1,11 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from pos.models import Sale, SaleItem
+from pos.analytics import sales_summary, net_revenue
 from drugs.models import Drug
-from django.db.models import Sum, F, Count
+from django.db.models import Sum, F, Q, DecimalField, ExpressionWrapper
 from django.utils import timezone
 from datetime import timedelta
-from decimal import Decimal
 from core.decorators import admin_only, pharmacist_or_admin
 
 @login_required
@@ -31,44 +31,34 @@ def index(request):
     else:
         end_date = today
     
-    # Base queryset for non-refunded sales in the selected range
-    sales_in_range = Sale.objects.filter(
-        is_refunded=False,
-        timestamp__date__range=[start_date, end_date]
-    )
-    
     # Sales Trend (Daily for last 7 days - NOT linked to filter range, but for dashboard context)
+    # Net of discounts and partial returns, fully refunded sales excluded.
     sales_trend = []
     for i in range(7):
         date = today - timedelta(days=i)
-        # Consistently exclude refunds here too
-        amount = Sale.objects.filter(timestamp__date=date, is_refunded=False).aggregate(
-            total=Sum(F('total_amount') - F('discount'))
-        )['total'] or Decimal('0.00')
-        sales_trend.append({'date': date, 'amount': amount})
-    
-    # Top Selling Drugs (Now respects date range and excludes refunds)
+        sales_trend.append({'date': date, 'amount': net_revenue(date, date)})
+
+    # Top Selling Drugs (respects date range, excludes refunds, net of returns)
+    net_qty = F('quantity') - F('returned_quantity')
     top_selling = SaleItem.objects.filter(
         sale__is_refunded=False,
         sale__timestamp__date__range=[start_date, end_date]
     ).values('drug__trade_name')\
-    .annotate(total_qty=Sum('quantity'), total_revenue=Sum('total_price'))\
+    .annotate(
+        total_qty=Sum(net_qty),
+        total_revenue=Sum(
+            F('unit_price') * net_qty,
+            output_field=DecimalField(max_digits=14, decimal_places=2),
+        ),
+    )\
+    .filter(total_qty__gt=0)\
     .order_by('-total_qty')[:10]
-        
-    # Main Metrics
-    total_revenue = sales_in_range.aggregate(
-        total=Sum(F('total_amount') - F('discount'))
-    )['total'] or Decimal('0.00')
-    
-    # Calculate costs from SaleItems linked to non-refunded sales in range
-    non_refunded_sales_items = SaleItem.objects.filter(
-        sale__is_refunded=False,
-        sale__timestamp__date__range=[start_date, end_date]
-    )
-    total_cost = non_refunded_sales_items.aggregate(total=Sum('total_cost'))['total'] or Decimal('0.00')
-    
-    net_profit = total_revenue - total_cost
-    profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0
+
+    # Main Metrics — net of discounts and partial returns (single source of truth).
+    summary = sales_summary(start_date, end_date)
+    total_revenue = summary['revenue']
+    net_profit = summary['profit']
+    profit_margin = summary['margin']
 
     context = {
         'sales_trend': sales_trend,
@@ -86,12 +76,11 @@ def index(request):
 @admin_only
 def dead_stock(request):
     query = request.GET.get('q', '')
+    from django.db.models import Q
     three_months_ago = timezone.now() - timedelta(days=90)
     # Drugs not in any SaleItem since three_months_ago
     sold_drug_ids = SaleItem.objects.filter(sale__timestamp__gte=three_months_ago).values_list('drug_id', flat=True).distinct()
-    from django.db.models import Sum, Q
-    sold_drug_ids = SaleItem.objects.filter(sale__timestamp__gte=three_months_ago).values_list('drug_id', flat=True).distinct()
-    
+
     # Get all drugs that have NOT been sold in last 90 days
     dead_drugs = Drug.objects.exclude(id__in=sold_drug_ids)
     
@@ -127,4 +116,53 @@ def loss_report(request):
         'expired_batches': expired_batches,
         'total_loss_value': total_loss_value,
         'query': query
+    })
+
+@login_required
+@admin_only
+def stock_valuation(request):
+    """Available-stock valuation: every in-stock, non-expired batch with its
+    line value (quantity x buy price), plus the grand total of stock on hand.
+
+    Uses the live ``Batch.purchase_price`` (current cost), so the figure matches
+    the dashboard's inventory valuation and reflects any buy-price revaluation.
+    """
+    from drugs.models import Batch
+    query = request.GET.get('q', '')
+    today = timezone.now().date()
+    near_expiry_date = today + timedelta(days=30)
+
+    line_total = ExpressionWrapper(
+        F('quantity') * F('purchase_price'),
+        output_field=DecimalField(max_digits=16, decimal_places=2),
+    )
+
+    # "Available" = on hand (qty > 0) and not expired (FIFO null-expiry counts).
+    # Within a drug, nearest expiry first so soon-to-expire stock stands out.
+    batches = (
+        Batch.objects.filter(Drug._not_expired(today), quantity__gt=0)
+        .select_related('drug')
+        .annotate(line_total=line_total)
+        .order_by('drug__trade_name', 'expiry_date', 'batch_number')
+    )
+    if query:
+        batches = batches.filter(
+            Q(drug__trade_name__icontains=query)
+            | Q(drug__scientific_name__icontains=query)
+            | Q(batch_number__icontains=query)
+        )
+
+    totals = batches.aggregate(
+        total_value=Sum(line_total),
+        total_units=Sum('quantity'),
+    )
+
+    return render(request, 'reports/stock_valuation.html', {
+        'batches': batches,
+        'total_value': totals['total_value'] or 0,
+        'total_units': totals['total_units'] or 0,
+        'batch_count': batches.count(),
+        'query': query,
+        'today': today,
+        'near_expiry_date': near_expiry_date,
     })

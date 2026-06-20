@@ -61,17 +61,14 @@
     </style>
 </head>
 
-<body onload="window.print()">
+<body onload="if (window.self === window.top) window.print();">
     <div class="header">
         <h2 style="margin: 0;">PHARMACY SYSTEM</h2>
-        <p style="margin: 5px 0;">123 Street Name, City</p>
-        <p style="margin: 0;">Tel: +123 456 789</p>
     </div>
 
     <div class="info">
         <div><strong>Date:</strong> {{ sale.timestamp|date:"M d, Y H:i" }}</div>
         <div><strong>Invoice:</strong> #{{ sale.id }}</div>
-        <div><strong>Cashier:</strong> {{ sale.cashier.username }}</div>
     </div>
 
     <table class="table">
@@ -87,29 +84,28 @@
             <tr>
                 <td>{{ item.drug.trade_name }}</td>
                 <td>{{ item.quantity }}</td>
-                <td class="right">SDG {{ item.total_price }}</td>
+                <td class="right">SDG {{ item.total_price|floatformat:0|intcomma }}</td>
             </tr>
             {% endfor %}
+            {% if sale.discount > 0 %}
             <tr class="total-row">
                 <td colspan="2">Subtotal</td>
-                <td class="right">SDG {{ sale.total_amount }}</td>
+                <td class="right">SDG {{ sale.total_amount|floatformat:0|intcomma }}</td>
             </tr>
-            {% if sale.discount > 0 %}
             <tr>
                 <td colspan="2">Discount</td>
-                <td class="right">-SDG {{ sale.discount }}</td>
+                <td class="right">-SDG {{ sale.discount|floatformat:0|intcomma }}</td>
             </tr>
             {% endif %}
             <tr style="font-size: 18px; font-weight: bold;">
                 <td colspan="2">TOTAL</td>
-                <td class="right">SDG {{ sale.final_amount }}</td>
+                <td class="right">SDG {{ sale.final_amount|floatformat:0|intcomma }}</td>
             </tr>
         </tbody>
     </table>
 
     <div class="footer">
         <p>Thank you for your visit!</p>
-        <p>Items can be returned within 7 days with this receipt.</p>
     </div>
 
     <div class="no-print" style="margin-top: 30px; text-align: center;">

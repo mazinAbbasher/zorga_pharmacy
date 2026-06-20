@@ -60,7 +60,7 @@
                     </td>
                     <!-- Unit price -->
                     <td class="px-3 py-3 text-right">
-                        <span class="text-sm font-semibold text-slate-500 whitespace-nowrap">SDG {{ item.price|floatformat:0 }}</span>
+                        <span class="text-sm font-semibold text-slate-500 whitespace-nowrap">SDG {{ item.price|floatformat:0|intcomma }}</span>
                     </td>
                     <!-- Quantity (editable) -->
                     <td class="px-3 py-3">
@@ -89,7 +89,7 @@
                     </td>
                     <!-- Line total -->
                     <td class="px-3 py-3 text-right">
-                        <span class="text-base font-extrabold text-slate-900 whitespace-nowrap">SDG {{ item.total|floatformat:0 }}</span>
+                        <span class="text-base font-extrabold text-slate-900 whitespace-nowrap">SDG {{ item.total|floatformat:0|intcomma }}</span>
                     </td>
                     <!-- Remove -->
                     <td class="pr-4 pl-2 py-3 text-right">

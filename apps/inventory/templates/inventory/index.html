@@ -16,7 +16,7 @@
                 <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 mb-4">
                     <i data-lucide="alert-triangle" class="w-6 h-6"></i>
                 </div>
-                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Critical Low Stock</h4>
+                <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Low / Out of Stock</h4>
                 <div class="flex items-end space-x-2 mt-1">
                     <span class="text-4xl font-black text-slate-900">{{ low_stock_count }}</span>
                     <span class="text-xs font-bold text-slate-400 mb-1.5 uppercase">Products</span>
@@ -88,10 +88,22 @@
             </div>
             <div class="flex items-center gap-3">
                 {% if user.is_admin %}
-                <a href="{% url 'inventory:bulk_price' %}"
+                <a href="{% url 'reports:stock_valuation' %}"
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-colors"
+                    title="Total value of current available stock">
+                    <i data-lucide="receipt-text" class="w-4 h-4"></i>
+                    <span>Stock Value</span>
+                </a>
+                <a href="{% url 'inventory:bulk_price' %}?target=purchase"
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-primary-950 hover:bg-primary-900 text-white shadow-sm transition-colors"
+                    title="Revalue stock when market cost changes — past invoices unaffected">
+                    <i data-lucide="wallet" class="w-4 h-4"></i>
+                    <span>Bulk Buy Price</span>
+                </a>
+                <a href="{% url 'inventory:bulk_price' %}?target=selling"
                     class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-accent-600 hover:bg-accent-700 text-white shadow-sm transition-colors">
                     <i data-lucide="percent" class="w-4 h-4"></i>
-                    <span>Bulk Price Update</span>
+                    <span>Bulk Sale Price</span>
                 </a>
                 {% endif %}
                 <div class="flex items-center bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50">
@@ -119,6 +131,7 @@
                 <tbody class="divide-y divide-slate-100">
                     {% for drug in drugs %}
                     <tr class="group hover:bg-slate-50/50 transition-all duration-200">
+                        {% with status=drug.stock_status qty=drug.total_quantity exp=drug.nearest_expiry_date %}
                         <td class="px-10 py-6">
                             <div class="flex items-center space-x-4">
                                 <div
@@ -136,12 +149,12 @@
                             <div class="flex flex-col space-y-1.5">
                                 <div class="flex items-end justify-between w-32">
                                     <span
-                                        class="text-sm font-black {% if drug.is_low_stock %}text-red-600{% else %}text-slate-900{% endif %}">{{                     drug.total_quantity }} <span
+                                        class="text-sm font-black {% if status == 'OUT_OF_STOCK' %}text-red-600{% elif status == 'LOW_STOCK' %}text-amber-600{% else %}text-slate-900{% endif %}">{{ qty }} <span
                                             class="text-[10px] text-slate-400 ml-0.5 font-bold">UNITS</span></span>
                                 </div>
                                 <div class="w-32 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full {% if drug.is_low_stock %}bg-red-500{% else %}bg-green-500{% endif %} transition-all duration-500"
-                                        style="width: {% if drug.total_quantity > 50 %}100{% else %}{{ drug.total_quantity|add:drug.total_quantity }}{% endif %}%">
+                                    <div class="h-full {% if status == 'OUT_OF_STOCK' %}bg-red-500{% elif status == 'LOW_STOCK' %}bg-amber-500{% else %}bg-green-500{% endif %} transition-all duration-500"
+                                        style="width: {% if qty > 50 %}100{% else %}{{ qty|add:qty }}{% endif %}%">
                                     </div>
                                 </div>
                             </div>
@@ -157,23 +170,29 @@
                         <td class="px-6 py-6">
                             <div class="flex items-center space-x-2">
                                 <div
-                                    class="w-8 h-8 rounded-lg {% if drug.nearest_expiry_date <= near_expiry_date %}bg-amber-50 text-amber-600{% else %}bg-slate-100 text-slate-400{% endif %} flex items-center justify-center">
+                                    class="w-8 h-8 rounded-lg {% if exp and exp <= near_expiry_date %}bg-amber-50 text-amber-600{% else %}bg-slate-100 text-slate-400{% endif %} flex items-center justify-center">
                                     <i data-lucide="clock" class="w-4 h-4"></i>
                                 </div>
                                 <div class="flex flex-col">
                                     <span
-                                        class="text-xs font-black {% if drug.nearest_expiry_date <= near_expiry_date %}text-amber-600 animate-pulse{% else %}text-slate-900{% endif %}">{{                     drug.nearest_expiry_date|date:"M d, Y"|default:"N/A" }}</span>
-                                    {% if drug.nearest_expiry_date <= today %}<span
+                                        class="text-xs font-black {% if exp and exp <= near_expiry_date %}text-amber-600 animate-pulse{% else %}text-slate-900{% endif %}">{{ exp|date:"M d, Y"|default:"N/A" }}</span>
+                                    {% if exp and exp <= today %}<span
                                         class="text-[9px] font-black text-red-500 uppercase tracking-tighter">
                                         Expired</span>{% endif %}
                                 </div>
                             </div>
                         </td>
                         <td class="px-10 py-6 text-right">
-                            {% if drug.is_low_stock %}
+                            {% if status == 'OUT_OF_STOCK' %}
                             <span
                                 class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-100">
                                 <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-2 animate-ping"></span>
+                                OUT OF STOCK
+                            </span>
+                            {% elif status == 'LOW_STOCK' %}
+                            <span
+                                class="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-100">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 animate-ping"></span>
                                 RESTOCK
                             </span>
                             {% else %}
@@ -184,6 +203,7 @@
                             </span>
                             {% endif %}
                         </td>
+                        {% endwith %}
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -70,7 +70,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
+    'django.contrib.humanize',  # intcomma — thousands separators for prices
+
     # Third party
     'widget_tweaks', # I'll install this later or use alternative
     
@@ -131,6 +132,11 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+            ],
+            # Make humanize filters (e.g. intcomma) available in every template
+            # without a per-file {% load humanize %}.
+            'builtins': [
+                'django.contrib.humanize.templatetags.humanize',
             ],
         },
     },

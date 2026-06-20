@@ -41,6 +41,70 @@ class DrugBarcodeFormTests(TestCase):
         self.assertTrue(form.is_valid(), form.errors)
         self.assertEqual(form.save().barcode, "ABC-123")
 
+class DrugBuyPriceFormTests(TestCase):
+    """Editing a product's buy price revalues active stock only — expired
+    batches and (separately) historical invoices are left alone."""
+
+    def setUp(self):
+        self.category = Category.objects.create(name="General")
+        self.today = timezone.now().date()
+        self.drug = Drug.objects.create(
+            trade_name="Panadol", category=self.category, dispensing_strategy="FEFO",
+        )
+        self.active = Batch.objects.create(
+            drug=self.drug, batch_number="A", quantity=10,
+            purchase_price=Decimal("10"), selling_price=Decimal("15"),
+            expiry_date=self.today + timedelta(days=100),
+        )
+        self.expired = Batch.objects.create(
+            drug=self.drug, batch_number="E", quantity=5,
+            purchase_price=Decimal("10"), selling_price=Decimal("15"),
+            expiry_date=self.today - timedelta(days=1),
+        )
+
+    def _data(self, **over):
+        data = {
+            "trade_name": "Panadol", "category": self.category.id, "barcode": "",
+            "dispensing_strategy": "FEFO", "minimum_stock_alert": 10,
+        }
+        data.update(over)
+        return data
+
+    def test_buy_price_cascades_to_active_batches_only(self):
+        form = DrugForm(data=self._data(buy_price="12.50"), instance=self.drug)
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+
+        self.active.refresh_from_db()
+        self.expired.refresh_from_db()
+        self.assertEqual(self.active.purchase_price, Decimal("12.50"))
+        self.assertEqual(self.expired.purchase_price, Decimal("10"))  # untouched
+        self.assertEqual(self.drug.current_buy_price, Decimal("12.50"))
+
+    def test_buy_price_cascades_to_fifo_null_expiry_batch(self):
+        # FIFO products carry no expiry; they are still "active" and revalue.
+        fifo = Drug.objects.create(trade_name="Gauze", category=self.category, dispensing_strategy="FIFO")
+        batch = Batch.objects.create(
+            drug=fifo, batch_number="", quantity=8,
+            purchase_price=Decimal("3"), selling_price=Decimal("5"), expiry_date=None,
+        )
+        form = DrugForm(
+            data=self._data(trade_name="Gauze", dispensing_strategy="FIFO", buy_price="4"),
+            instance=fifo,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        batch.refresh_from_db()
+        self.assertEqual(batch.purchase_price, Decimal("4"))
+
+    def test_blank_buy_price_leaves_stock_unchanged(self):
+        form = DrugForm(data=self._data(), instance=self.drug)  # no buy_price
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save()
+        self.active.refresh_from_db()
+        self.assertEqual(self.active.purchase_price, Decimal("10"))
+
+
 class InventoryTestCase(TestCase):
     def setUp(self):
         self.client = Client()
@@ -124,3 +188,46 @@ class InventoryTestCase(TestCase):
         response = self.client.get(url, {'expiry': 'soon'})
         self.assertContains(response, "SoonExp")
         self.assertNotContains(response, "Panadol")
+
+
+class RestockNeededSelectorTests(TestCase):
+    """restock_needed_drugs() must equal the set of drugs where needs_restock is True."""
+
+    def setUp(self):
+        from drugs.selectors import restock_needed_drugs
+        self.restock_needed_drugs = restock_needed_drugs
+        self.cat = Category.objects.create(name="Meds")
+        self.today = timezone.now().date()
+
+    def _drug(self, name, qty, *, expired=False, min_alert=10):
+        drug = Drug.objects.create(trade_name=name, category=self.cat, minimum_stock_alert=min_alert)
+        if qty is not None:
+            Batch.objects.create(
+                drug=drug, batch_number=name, quantity=qty,
+                purchase_price=Decimal("1"), selling_price=Decimal("2"),
+                expiry_date=self.today - timedelta(days=1) if expired else self.today + timedelta(days=100),
+            )
+        return drug
+
+    def test_matches_needs_restock_property(self):
+        self._drug("Healthy", 50)        # in stock -> ok
+        self._drug("Low", 5)             # low stock -> needs restock
+        self._drug("Out", 0)             # out of stock -> needs restock
+        self._drug("NoBatch", None)      # no batches -> needs restock
+        self._drug("ExpiredOnly", 100, expired=True)  # all expired -> sellable 0 -> needs restock
+
+        qs = self.restock_needed_drugs(self.today)
+        expected = {d.id for d in Drug.objects.all() if d.needs_restock}
+        self.assertEqual(set(qs.values_list('id', flat=True)), expected)
+        self.assertEqual(qs.count(), 4)  # everything except "Healthy"
+
+    def test_expired_stock_does_not_mask_low_stock(self):
+        # 3 sellable units + 100 expired: sellable is below threshold -> needs restock,
+        # even though the raw batch-quantity sum (103) is well above it.
+        drug = self._drug("Mixed", 3)
+        Batch.objects.create(
+            drug=drug, batch_number="EXP", quantity=100,
+            purchase_price=Decimal("1"), selling_price=Decimal("2"),
+            expiry_date=self.today - timedelta(days=1),
+        )
+        self.assertIn(drug.id, set(self.restock_needed_drugs(self.today).values_list('id', flat=True)))

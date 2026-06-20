@@ -110,9 +110,31 @@ def ensure_std_streams(data_dir: Path) -> None:
         sys.stderr = stream
 
 
+def enforce_license(data_dir: Path) -> bool:
+    """Gate startup on a valid, machine-locked license (packaged builds only).
+
+    Returns True if the app may run. In a frozen build with no valid license,
+    shows the activation screen; returns False (caller should exit) if the user
+    closes it without activating.
+    """
+    from licensing import gate
+
+    if not gate.is_enforced():
+        return True  # running from source during development — never gated
+
+    ok, machine_id, license_path, _reason = gate.check(data_dir)
+    if ok:
+        return True
+    return gate.run_activation(machine_id, license_path, data_dir)
+
+
 def main() -> int:
     data_dir = configure_environment()
     ensure_std_streams(data_dir)
+
+    if not enforce_license(data_dir):
+        print("Pharmacy System is not activated on this computer.", file=sys.stderr)
+        return 2
 
     import django
 

@@ -6,6 +6,7 @@ from django.test import TestCase, Client
 from drugs.models import Drug, Category, Batch
 from inventory.models import StockMovement
 from pos.models import Sale, SaleItem
+from pos.analytics import net_revenue, sales_summary
 from users.models import User
 from customers.models import Customer
 
@@ -64,6 +65,62 @@ class SaleReturnTests(TestCase):
         self.client.post(f"/pos/return/{sale.id}/", {f"return_qty_{sale.items.first().id}": "1"})
         cust.refresh_from_db()
         self.assertEqual(cust.outstanding_balance, Decimal("30"))  # one unit returned
+
+
+class SalesAnalyticsTests(TestCase):
+    """Dashboard/reports figures must be net of discounts and partial returns."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="an", password="pw12345", role="ADMIN")
+        self.cat = Category.objects.create(name="General")
+        self.drug = Drug.objects.create(trade_name="Panadol", category=self.cat)
+        self.today = date.today()
+
+    def _sale(self, qty=4, discount=Decimal("0"), refunded=False):
+        sale = Sale.objects.create(
+            cashier=self.user, total_amount=Decimal("10") * qty,
+            discount=discount, is_refunded=refunded,
+        )
+        SaleItem.objects.create(
+            sale=sale, drug=self.drug, quantity=qty,
+            unit_price=Decimal("10"), unit_cost=Decimal("6"),
+        )
+        return sale
+
+    def test_net_revenue_subtracts_discount(self):
+        self._sale(qty=4, discount=Decimal("5"))  # 40 - 5
+        self.assertEqual(net_revenue(self.today, self.today), Decimal("35"))
+
+    def test_net_revenue_excludes_fully_refunded_sales(self):
+        self._sale(qty=4)              # 40
+        self._sale(qty=2, refunded=True)  # excluded
+        self.assertEqual(net_revenue(self.today, self.today), Decimal("40"))
+
+    def test_net_revenue_subtracts_partial_returns(self):
+        sale = self._sale(qty=4)  # 40
+        item = sale.items.first()
+        item.returned_quantity = 1  # 10 returned -> net 30
+        item.save()
+        self.assertEqual(net_revenue(self.today, self.today), Decimal("30"))
+
+    def test_summary_profit_and_cost_net_of_returns(self):
+        sale = self._sale(qty=4)  # rev 40, cost 24
+        item = sale.items.first()
+        item.returned_quantity = 1  # return 1 unit: -10 rev, -6 cost
+        item.save()
+        summary = sales_summary(self.today, self.today)
+        self.assertEqual(summary['revenue'], Decimal("30"))
+        self.assertEqual(summary['cost'], Decimal("18"))   # 3 units * 6
+        self.assertEqual(summary['profit'], Decimal("12"))  # 30 - 18
+
+    def test_summary_matches_model_net_profit_with_partial_return(self):
+        sale = self._sale(qty=4, discount=Decimal("5"))
+        item = sale.items.first()
+        item.returned_quantity = 1
+        item.save()
+        summary = sales_summary(self.today, self.today)
+        # The aggregate must agree with the per-sale model property.
+        self.assertEqual(summary['profit'], sale.net_profit)
 
 
 class CheckoutFlowTests(TestCase):

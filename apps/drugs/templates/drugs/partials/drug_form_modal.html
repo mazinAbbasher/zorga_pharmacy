@@ -65,10 +65,16 @@
             </p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="space-y-2">
                 <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Min. Stock Alert</label>
                 {{ form.minimum_stock_alert }}
+            </div>
+            <div class="space-y-2">
+                <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Current Buy Price</label>
+                {{ form.buy_price }}
+                {% if form.buy_price.errors %}<p class="text-xs font-bold text-red-500 pl-2">{{ form.buy_price.errors.0 }}</p>{% endif %}
+                <p class="text-[9px] text-slate-400 pl-2">Revalues active stock · past invoices unaffected</p>
             </div>
             <div class="space-y-2">
                 <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Current Sale Price</label>

@@ -25,7 +25,7 @@
             </div>
             <div class="flex items-center space-x-3">
                 <div class="text-right mr-4">
-                    <div class="text-lg font-black text-red-600">-SDG {{ payment.amount|floatformat:0 }}</div>
+                    <div class="text-lg font-black text-red-600">-SDG {{ payment.amount|floatformat:0|intcomma }}</div>
                     {% if payment.notes %}
                     <div class="text-[10px] font-medium text-slate-400 italic">{{ payment.notes }}</div>
                     {% endif %}

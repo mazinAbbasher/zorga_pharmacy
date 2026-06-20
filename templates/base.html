@@ -350,6 +350,37 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModal();
         });
+
+        // Print a receipt/invoice *inside* the app window (no browser launch).
+        // The desktop build runs in a native pywebview window, where a normal
+        // target="_blank" link would hand the page to the system browser. Loading
+        // the receipt into a hidden, same-origin iframe lets us open the print
+        // dialog directly over the app and clean up automatically afterwards.
+        function printInvoice(url) {
+            const existing = document.getElementById('invoice-print-frame');
+            if (existing) existing.remove();   // discard any leftover frame
+
+            const frame = document.createElement('iframe');
+            frame.id = 'invoice-print-frame';
+            frame.setAttribute('aria-hidden', 'true');
+            frame.style.cssText = 'position:fixed;width:0;height:0;border:0;right:0;bottom:0;';
+
+            frame.onload = function () {
+                try {
+                    const win = frame.contentWindow;
+                    win.addEventListener('afterprint', () => frame.remove());
+                    win.focus();
+                    win.print();
+                } catch (err) {
+                    // Last-resort fallback: open standalone (browser auto-prints).
+                    window.open(url, '_blank');
+                    frame.remove();
+                }
+            };
+
+            frame.src = url;
+            document.body.appendChild(frame);
+        }
     </script>
 </body>
 

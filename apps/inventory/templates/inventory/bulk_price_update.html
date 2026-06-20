@@ -12,10 +12,12 @@
             <i data-lucide="percent" class="w-6 h-6"></i>
         </div>
         <div>
-            <h2 class="text-2xl font-black text-slate-900">Adjust Sale Prices in Bulk</h2>
+            <h2 class="text-2xl font-black text-slate-900">Adjust Prices in Bulk</h2>
             <p class="text-sm font-medium text-slate-400 mt-1 max-w-2xl">
-                Increase or decrease the sale price of many products at once. Pick a percentage and an audience,
-                preview how many products are affected, then apply — all in a single, instant update.
+                Increase or decrease the <span class="font-bold text-slate-500">sale</span> or
+                <span class="font-bold text-slate-500">buy</span> price of many products at once. Pick a percentage and
+                an audience, preview how many products are affected, then apply — all in a single, instant update.
+                Buy-price changes revalue stock only; past purchase invoices are never altered.
             </p>
         </div>
     </div>
@@ -35,6 +37,14 @@
                         {{ form.non_field_errors }}
                     </div>
                     {% endif %}
+
+                    <!-- Which price -->
+                    <div class="space-y-2 mb-6">
+                        <label class="block text-sm font-semibold text-slate-700">Which price?</label>
+                        {% render_field form.target class="input" %}
+                        {% for e in form.target.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                        <p class="text-xs text-slate-400">Buy price values your stock; sale price is what customers pay.</p>
+                    </div>
 
                     <!-- Direction + percentage -->
                     <div class="space-y-2 mb-6">

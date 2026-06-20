@@ -22,7 +22,7 @@
     <div class="p-7 bg-gradient-to-br from-accent-600 to-accent-700 text-white">
         <div class="flex items-center gap-2 text-accent-100 text-[10px] font-black uppercase tracking-[0.2em]">
             {% if direction == 'increase' %}<i data-lucide="trending-up" class="w-4 h-4"></i> Increase{% else %}<i data-lucide="trending-down" class="w-4 h-4"></i> Decrease{% endif %}
-            <span>by {{ percentage|floatformat:"-2" }}%</span>
+            <span>{{ target_label }} price by {{ percentage|floatformat:"-2"|intcomma }}%</span>
         </div>
         <div class="flex items-end gap-2 mt-2">
             <span class="text-5xl font-black leading-none">{{ product_count }}</span>
@@ -43,9 +43,9 @@
                     {% if s.batch %}<p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Batch {{ s.batch }}</p>{% endif %}
                 </div>
                 <div class="flex items-center gap-2 text-sm font-bold shrink-0 ml-3">
-                    <span class="text-slate-400 line-through">{{ s.old_price|floatformat:2 }}</span>
+                    <span class="text-slate-400 line-through">{{ s.old_price|floatformat:0|intcomma }}</span>
                     <i data-lucide="arrow-right" class="w-3.5 h-3.5 text-slate-300"></i>
-                    <span class="{% if direction == 'increase' %}text-green-600{% else %}text-red-600{% endif %}">{{ s.new_price|floatformat:2 }}</span>
+                    <span class="{% if direction == 'increase' %}text-green-600{% else %}text-red-600{% endif %}">{{ s.new_price|floatformat:0|intcomma }}</span>
                 </div>
             </div>
             {% endfor %}
@@ -59,6 +59,7 @@
             onsubmit="return confirm('Apply this price change to {{ product_count }} product(s)? This cannot be undone automatically.');">
             {% csrf_token %}
             <input type="hidden" name="action" value="apply">
+            <input type="hidden" name="target" value="{{ form.target.value }}">
             <input type="hidden" name="direction" value="{{ form.direction.value }}">
             <input type="hidden" name="percentage" value="{{ form.percentage.value }}">
             <input type="hidden" name="scope" value="{{ form.scope.value }}">

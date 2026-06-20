@@ -8,8 +8,15 @@ from purchases.models import PurchaseItem
 
 
 class BulkPriceUpdateForm(forms.Form):
-    """Increase or decrease the sale price (Batch.selling_price) of many
-    products at once, scoped by a chosen audience."""
+    """Increase or decrease a price across many products at once, scoped by a
+    chosen audience.
+
+    ``target`` selects which price to move: the sale price
+    (``Batch.selling_price``) or the buy/cost price (``Batch.purchase_price``).
+    Either way this only touches live stock — historical purchase invoices
+    (PurchaseItem) and recorded sale costs (SaleItem.unit_cost) are separate
+    and stay frozen.
+    """
 
     DIRECTION_CHOICES = [
         ('increase', 'Increase'),
@@ -21,7 +28,18 @@ class BulkPriceUpdateForm(forms.Form):
         ('category', 'A specific category'),
         ('supplier', 'A specific supplier'),
     ]
+    TARGET_CHOICES = [
+        ('selling', 'Sale price'),
+        ('purchase', 'Buy price (cost)'),
+    ]
+    # field name + lowest allowed value per target. Sale prices must stay
+    # sellable (>= 0.01); buy prices may legitimately be 0.
+    _TARGET_CONFIG = {
+        'selling': ('selling_price', Decimal('0.01')),
+        'purchase': ('purchase_price', Decimal('0.00')),
+    }
 
+    target = forms.ChoiceField(choices=TARGET_CHOICES, initial='selling')
     direction = forms.ChoiceField(choices=DIRECTION_CHOICES)
     percentage = forms.DecimalField(
         min_value=Decimal('0.01'),
@@ -67,8 +85,25 @@ class BulkPriceUpdateForm(forms.Form):
             return Decimal('1') - ratio
         return Decimal('1') + ratio
 
+    @property
+    def price_field(self):
+        """Model field name to update: 'selling_price' or 'purchase_price'."""
+        target = self.cleaned_data.get('target', 'selling')
+        return self._TARGET_CONFIG[target][0]
+
+    @property
+    def price_floor(self):
+        """Lowest value a price is allowed to drop to for the chosen target."""
+        target = self.cleaned_data.get('target', 'selling')
+        return self._TARGET_CONFIG[target][1]
+
+    @property
+    def target_label(self):
+        """Human label for the chosen target, e.g. 'Buy' or 'Sale'."""
+        return 'Buy' if self.cleaned_data.get('target') == 'purchase' else 'Sale'
+
     def get_batches(self):
-        """The Batch queryset whose selling_price will be updated."""
+        """The Batch queryset whose chosen price (``price_field``) will move."""
         scope = self.cleaned_data['scope']
         batches = Batch.objects.all()
 

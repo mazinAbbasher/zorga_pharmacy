@@ -28,6 +28,7 @@ hiddenimports = ["config.settings", "config.wsgi", "config.urls", "config.test_r
 for label in APP_LABELS:
     hiddenimports += collect_submodules(label)
 hiddenimports += collect_submodules("whitenoise")
+hiddenimports += collect_submodules("licensing")  # machine-locked license gate
 hiddenimports += ["waitress", "widget_tweaks"]
 
 # Bundle templates and static files.

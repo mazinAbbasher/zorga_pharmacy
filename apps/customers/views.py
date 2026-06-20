@@ -122,13 +122,26 @@ def record_payment(request, pk):
 def payment_history(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
     from pos.models import Sale
-    
-    pos_sales = Sale.objects.filter(customer=customer, payment_method='CREDIT', is_refunded=False)
+    from inventory.models import StockMovement
+    from django.db.models import Max
+
+    pos_sales = Sale.objects.filter(
+        customer=customer, payment_method='CREDIT', is_refunded=False
+    ).prefetch_related('items')
     payments = CustomerPayment.objects.filter(customer=customer).order_by('-payment_date')
-    
+
+    # Most recent return date per sale, used to date the return-credit entries
+    # below (returned_quantity is cumulative, so we show one credit per sale).
+    return_refs = {f"RET-SALE-{s.id}": s.id for s in pos_sales}
+    return_dates = {}
+    if return_refs:
+        for mv in (StockMovement.objects
+                   .filter(movement_type='RETURN', reference_id__in=return_refs.keys())
+                   .values('reference_id').annotate(last=Max('timestamp'))):
+            return_dates[return_refs[mv['reference_id']]] = mv['last']
+
     ledger = []
     for sale in pos_sales:
-        # Normalize to a timezone-aware datetime for uniform comparison
         ledger.append({
             'type': 'DEBT',
             'date': sale.timestamp,
@@ -136,7 +149,18 @@ def payment_history(request, pk):
             'reference': f"Sale #{sale.id}",
             'notes': "POS Credit Purchase"
         })
-    
+        # Partial returns reduce what the customer owes — record them as credits
+        # so the ledger reconciles with the outstanding balance.
+        refunded = sale.refunded_amount
+        if refunded > 0:
+            ledger.append({
+                'type': 'RETURN',
+                'date': return_dates.get(sale.id, sale.timestamp),
+                'amount': refunded,
+                'reference': f"Sale #{sale.id}",
+                'notes': "Items returned",
+            })
+
     for p in payments:
         # Convert date -> datetime for sorting consistency
         from datetime import datetime, time, timezone as dt_timezone

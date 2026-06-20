@@ -16,7 +16,7 @@
         {{ purchase.purchase_date|date:"M d, Y" }}
     </td>
     <td class="px-6 py-5 text-right">
-        <span class="text-sm font-black text-slate-900">SDG {{ purchase.total_amount|floatformat:0 }}</span>
+        <span class="text-sm font-black text-slate-900">SDG {{ purchase.total_amount|floatformat:0|intcomma }}</span>
     </td>
     <td class="px-6 py-5 text-center">
         <span class="px-3 py-1 bg-slate-100 rounded-lg text-[10px] font-black text-slate-600">

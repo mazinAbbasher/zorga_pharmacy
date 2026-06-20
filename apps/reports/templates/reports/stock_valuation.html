@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Valuation | Pharmacy System{% endblock %}
+{% block header_title %}Available Stock Valuation{% endblock %}
+
+{% block content %}
+<style>
+    /* On screen the print-only header is hidden; print shows ONLY #sv-print
+       (the report header + rows + total) and lets it flow across pages. */
+    .print-only { display: none; }
+    @media print {
+        @page { margin: 12mm; }
+        /* Drop the app chrome and screen-only blocks from layout entirely
+           (display:none, not visibility:hidden) so they reserve no height and
+           can't push a blank trailing page. */
+        #sidebar, header, .no-print { display: none !important; }
+        html, body, main, #main-content {
+            overflow: visible !important; height: auto !important; background: #fff !important;
+        }
+        #main-content { padding: 0 !important; }
+        .print-only { display: block !important; }
+        /* #sv-print prints in normal flow — no absolute positioning. */
+        #sv-print {
+            margin: 0 !important; border: none !important;
+            box-shadow: none !important; border-radius: 0 !important; overflow: visible !important;
+        }
+        #sv-print table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        #sv-print thead { display: table-header-group; }   /* repeat header per page */
+        #sv-print tfoot { display: table-footer-group; }
+        #sv-print tr { page-break-inside: avoid; }
+        #sv-print th, #sv-print td { border-bottom: 1px solid #cbd5e1; padding: 6px 8px; }
+    }
+</style>
+<div class="space-y-8 animate-in fade-in duration-500">
+    <div class="no-print flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-black text-slate-900 tracking-tight">Current Stock Value</h2>
+            <p class="text-slate-500 font-medium text-sm">Every available batch valued at its current buy price
+                &mdash; as of {{ today|date:"M d, Y" }}.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <form method="get" class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i data-lucide="search"
+                        class="w-5 h-5 text-slate-400 group-focus-within:text-accent-600 transition-colors"></i>
+                </div>
+                <input type="text" name="q" value="{{ query }}" placeholder="Search drug or batch..."
+                    class="block w-full md:w-72 pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all shadow-sm">
+            </form>
+            <button type="button" onclick="window.print()"
+                class="shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary-950 hover:bg-primary-900 text-white text-sm font-bold transition-all active:scale-95 shadow-sm">
+                <i data-lucide="printer" class="w-5 h-5"></i>
+                <span class="hidden sm:inline">Print</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary cards (screen only) -->
+    <div class="no-print grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="md:col-span-1 bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-accent-600/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-accent-600/20 transition-colors"></div>
+            <div class="relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-6 backdrop-blur-md border border-white/10">
+                    <i data-lucide="wallet" class="w-7 h-7"></i>
+                </div>
+                <h4 class="text-[10px] font-black text-slate-300/50 uppercase tracking-[0.2em]">Total Stock Value</h4>
+                <div class="flex items-baseline space-x-2 mt-2">
+                    <span class="text-4xl font-black text-white">SDG {{ total_value|floatformat:0|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col justify-center">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Units in Stock</h4>
+            <div class="text-4xl font-black text-slate-900 mt-2">{{ total_units }}</div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center">
+                <i data-lucide="boxes" class="w-3 h-3 mr-1"></i> Across all available batches
+            </p>
+        </div>
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col justify-center">
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Available Batches</h4>
+            <div class="text-4xl font-black text-slate-900 mt-2">{{ batch_count }}</div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center">
+                <i data-lucide="layers" class="w-3 h-3 mr-1"></i> In-stock &amp; not expired
+            </p>
+        </div>
+    </div>
+
+    <!-- Printable area: report header + rows + grand total -->
+    <div id="sv-print" class="bg-white rounded-[2.5rem] border border-slate-200/60 overflow-hidden shadow-sm card-chrome">
+        <!-- Shown only when printing -->
+        <div class="print-only" style="margin-bottom:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #0f172a;padding-bottom:8px;">
+                <div>
+                    <div style="font-size:18px;font-weight:800;">Available Stock Valuation</div>
+                    <div style="font-size:11px;color:#475569;">As of {{ today|date:"M d, Y" }}{% if query %} · filter: "{{ query }}"{% endif %}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;">Total Stock Value</div>
+                    <div style="font-size:18px;font-weight:800;">SDG {{ total_value|floatformat:0|intcomma }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        <th class="px-8 py-6">Drug</th>
+                        <th class="px-6 py-6">Batch Number</th>
+                        <th class="px-6 py-6">Expiry Date</th>
+                        <th class="px-6 py-6 text-center">Quantity</th>
+                        <th class="px-6 py-6 text-right">Buy Price</th>
+                        <th class="px-8 py-6 text-right">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for batch in batches %}
+                    <tr class="hover:bg-slate-50/60 transition-colors">
+                        <td class="px-8 py-5">
+                            <div class="font-bold text-slate-900">{{ batch.drug.trade_name }}</div>
+                            {% if batch.drug.scientific_name %}
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ batch.drug.scientific_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-5">
+                            <span class="font-mono text-xs font-bold text-slate-600">{{ batch.batch_number|default:"—" }}</span>
+                        </td>
+                        <td class="px-6 py-5">
+                            {% if batch.expiry_date %}
+                            <span class="text-xs font-bold {% if batch.expiry_date <= near_expiry_date %}text-amber-600{% else %}text-slate-600{% endif %}">
+                                {{ batch.expiry_date|date:"M d, Y" }}
+                            </span>
+                            {% else %}
+                            <span class="text-xs font-bold text-slate-400">No expiry</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-5 text-center font-bold text-slate-700">{{ batch.quantity }}</td>
+                        <td class="px-6 py-5 text-right font-mono text-slate-600">SDG {{ batch.purchase_price|floatformat:0|intcomma }}</td>
+                        <td class="px-8 py-5 text-right font-black text-slate-900">SDG {{ batch.line_total|floatformat:0|intcomma }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-8 py-32 text-center text-slate-400">
+                            <div class="flex flex-col items-center justify-center opacity-20">
+                                <i data-lucide="package-x" class="w-16 h-16 mb-4"></i>
+                                <span class="text-sm font-black uppercase tracking-widest">No Available Stock</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if batches %}
+                <tfoot>
+                    <tr class="bg-slate-50 border-t-2 border-slate-200 text-sm font-black text-slate-900">
+                        <td class="px-8 py-6 uppercase tracking-widest text-[11px] text-slate-500" colspan="3">Grand Total</td>
+                        <td class="px-6 py-6 text-center">{{ total_units }} units</td>
+                        <td class="px-6 py-6"></td>
+                        <td class="px-8 py-6 text-right text-accent-600">SDG {{ total_value|floatformat:0|intcomma }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
