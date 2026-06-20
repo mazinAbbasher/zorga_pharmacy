@@ -86,13 +86,22 @@
                 <p class="text-sm font-medium text-slate-400 mt-1">Unified view of all drug levels, thresholds, and
                     expiration timelines.</p>
             </div>
-            <div class="flex items-center bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50">
-                <button
-                    class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-white shadow-sm text-accent-600">All
-                    Master</button>
-                <button
-                    class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors">Low
-                    Only</button>
+            <div class="flex items-center gap-3">
+                {% if user.is_admin %}
+                <a href="{% url 'inventory:bulk_price' %}"
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-accent-600 hover:bg-accent-700 text-white shadow-sm transition-colors">
+                    <i data-lucide="percent" class="w-4 h-4"></i>
+                    <span>Bulk Price Update</span>
+                </a>
+                {% endif %}
+                <div class="flex items-center bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200/50">
+                    <button
+                        class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-white shadow-sm text-accent-600">All
+                        Master</button>
+                    <button
+                        class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors">Low
+                        Only</button>
+                </div>
             </div>
         </div>
 

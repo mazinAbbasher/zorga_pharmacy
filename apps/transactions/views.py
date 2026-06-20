@@ -11,9 +11,8 @@ def list(request):
     query = request.GET.get('q', '')
     transaction_type = request.GET.get('type', 'sales') # default to sales
     
-    # Pharmacists can only see sales
-    if not request.user.is_admin() and transaction_type == 'purchases':
-        transaction_type = 'sales'
+    # Only admins may view purchases; everyone else (and the default) sees sales.
+    if transaction_type == 'purchases' and request.user.is_admin():
         transactions = Purchase.objects.all().order_by('-created_at')
         if query:
             transactions = transactions.filter(
@@ -22,6 +21,7 @@ def list(request):
             )
         template = 'transactions/purchase_list.html'
     else:
+        transaction_type = 'sales'
         transactions = Sale.objects.all().order_by('-timestamp')
         if query:
             transactions = transactions.filter(

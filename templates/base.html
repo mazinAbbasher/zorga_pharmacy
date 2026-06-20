@@ -117,6 +117,12 @@
                 </a>
 
                 {% if user.is_admin %}
+                <a href="{% url 'inventory:bulk_price' %}"
+                    class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.view_name == 'inventory:bulk_price' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
+                    <i data-lucide="percent" class="w-5 h-5"></i>
+                    <span>Bulk Price Update</span>
+                </a>
+
                 <a href="{% url 'purchases:list' %}"
                     class="flex items-center space-x-3 px-4 py-2.5 rounded-xl transition-all duration-200 group hover:bg-white/5 {% if request.resolver_match.app_name == 'purchases' %}bg-accent-600/10 text-accent-400 font-medium{% else %}text-slate-400{% endif %}">
                     <i data-lucide="package-plus" class="w-5 h-5"></i>

@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import (
-    Sum, Q, Count, F, Value, DecimalField, ExpressionWrapper,
+    Sum, F, Value, DecimalField, ExpressionWrapper,
 )
 from django.db.models.functions import Round, Greatest
 from django.utils import timezone
@@ -27,7 +27,6 @@ def index(request):
     low_stock_count = drugs_with_stock.filter(total_stock__lte=F('minimum_stock_alert')).count()
 
     # Batch-aware expiring soon
-    from drugs.models import Batch
     expiring_soon_count = Batch.objects.filter(
         expiry_date__lte=near_expiry_date,
         expiry_date__gte=today,
@@ -131,9 +130,10 @@ def bulk_price_update(request):
                 )
 
             verb = 'increased' if form.cleaned_data['direction'] == 'increase' else 'decreased'
+            pct = f"{form.cleaned_data['percentage']:.2f}".rstrip('0').rstrip('.')
             messages.success(
                 request,
-                f"Prices {verb} by {form.cleaned_data['percentage']:g}% — "
+                f"Prices {verb} by {pct}% — "
                 f"updated {updated} price record(s) across {product_count} product(s).",
             )
             return redirect('inventory:bulk_price')
