@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block title %}Statement · {{ supplier.name }} | Pharmacy System{% endblock %}
+{% block header_title %}Statement of Account{% endblock %}
+
+{% block content %}
+<style>
+    /* Screen hides the print header; printing drops the app chrome and shows
+       ONLY #statement-print, flowing it across pages (same approach as the
+       stock-valuation report — prints/saves-as-PDF inside the desktop window,
+       never a separate browser window). */
+    .print-only { display: none; }
+    @media print {
+        @page { margin: 12mm; }
+        #sidebar, header, .no-print { display: none !important; }
+        html, body, main, #main-content {
+            overflow: visible !important; height: auto !important; background: #fff !important;
+        }
+        #main-content { padding: 0 !important; }
+        .print-only { display: block !important; }
+        #statement-print {
+            margin: 0 !important; border: none !important;
+            box-shadow: none !important; border-radius: 0 !important; overflow: visible !important;
+        }
+        #statement-print table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        #statement-print thead { display: table-header-group; }   /* repeat header per page */
+        #statement-print tfoot { display: table-footer-group; }
+        #statement-print tr { page-break-inside: avoid; }
+        #statement-print th, #statement-print td { border-bottom: 1px solid #cbd5e1; padding: 6px 8px; }
+    }
+</style>
+
+<div class="space-y-8 animate-in fade-in duration-500 max-w-6xl mx-auto">
+
+    <!-- Breadcrumb + actions -->
+    <div class="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <a href="{% url 'suppliers:list' %}"
+            class="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-700 transition-colors">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            Back to Suppliers
+        </a>
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="window.print()"
+                class="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-sm">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                <span>Download PDF</span>
+            </button>
+            <button hx-get="{% url 'suppliers:record_payment' supplier.id %}" hx-target="#modal-content"
+                class="inline-flex items-center justify-center gap-2 bg-primary-950 hover:bg-primary-900 text-white px-5 py-3 rounded-2xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 shadow-lg shadow-primary-950/20">
+                <i data-lucide="hand-coins" class="w-4 h-4"></i>
+                <span>Record Payment</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Supplier identity + outstanding balance -->
+    <div class="no-print grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200/60 shadow-sm p-8">
+            <div class="flex items-start gap-5">
+                <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                    <i data-lucide="building-2" class="w-8 h-8"></i>
+                </div>
+                <div class="min-w-0">
+                    <h3 class="text-2xl font-black text-slate-900 tracking-tight truncate">{{ supplier.name }}</h3>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Partner ID · #SUP-0{{ supplier.id }}</div>
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 mt-4">
+                        {% if supplier.phone_number %}
+                        <div class="flex items-center text-sm font-bold text-slate-600">
+                            <i data-lucide="phone" class="w-4 h-4 mr-2 text-slate-300"></i>{{ supplier.phone_number }}
+                        </div>{% endif %}
+                        {% if supplier.email %}
+                        <div class="flex items-center text-sm font-medium text-slate-500">
+                            <i data-lucide="mail" class="w-4 h-4 mr-2 text-slate-300"></i>{{ supplier.email }}
+                        </div>{% endif %}
+                        {% if supplier.address %}
+                        <div class="flex items-center text-sm font-medium text-slate-500">
+                            <i data-lucide="map-pin" class="w-4 h-4 mr-2 text-slate-300"></i>{{ supplier.address|truncatechars:50 }}
+                        </div>{% endif %}
+                    </div>
+                    <div class="flex flex-wrap gap-x-8 gap-y-2 mt-5 pt-5 border-t border-slate-100">
+                        <div>
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Partner Since</div>
+                            <div class="text-sm font-bold text-slate-700 mt-0.5">{{ supplier.created_at|date:"M Y" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Invoices</div>
+                            <div class="text-sm font-bold text-slate-700 mt-0.5">{{ invoice_count }}</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Transactions</div>
+                            <div class="text-sm font-bold text-slate-700 mt-0.5">{{ total_transactions }} entries</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="rounded-[2rem] bg-primary-950 text-white p-8 shadow-xl shadow-primary-950/20 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase tracking-widest text-white/50">Outstanding Payable · Now</span>
+                <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center">
+                    <i data-lucide="scale" class="w-6 h-6 text-white/70"></i>
+                </div>
+            </div>
+            <div>
+                <div class="text-4xl font-black mt-4 {% if supplier.balance > 0 %}text-red-400{% else %}text-emerald-400{% endif %}">
+                    SDG {{ supplier.balance|floatformat:0|intcomma }}
+                </div>
+                <div class="text-[11px] font-bold text-white/40 mt-2">
+                    {% if supplier.balance > 0 %}You owe this supplier{% elif supplier.balance < 0 %}Supplier owes you (credit balance){% else %}Account fully settled{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date filter -->
+    <div class="no-print flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <form method="get" class="flex flex-wrap items-end gap-2">
+            <div class="flex flex-col">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">From</label>
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}"
+                    class="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all shadow-sm">
+            </div>
+            <div class="flex flex-col">
+                <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">To</label>
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}"
+                    class="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all shadow-sm">
+            </div>
+            <button type="submit"
+                class="px-5 py-2.5 rounded-xl bg-primary-950 hover:bg-primary-900 text-white text-xs font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm">
+                Apply
+            </button>
+            {% if has_filter %}
+            <a href="{% url 'suppliers:statement' supplier.id %}"
+                class="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-black uppercase tracking-widest transition-all">
+                Clear
+            </a>
+            {% endif %}
+        </form>
+        <div class="text-right">
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Showing Period</div>
+            <div class="text-sm font-black text-slate-700">
+                {% if has_filter %}{{ start_date|date:"M d, Y"|default:"Start" }} — {{ end_date|date:"M d, Y"|default:"Today" }}{% else %}All Transactions{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary metrics (for the selected period) -->
+    <div class="no-print grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gross Purchased</div>
+            <div class="text-xl font-black text-slate-800 mt-1">SDG {{ total_debit|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <div class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Returns / Credits</div>
+            <div class="text-xl font-black text-blue-700 mt-1">SDG {{ total_returned|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <div class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Payments</div>
+            <div class="text-xl font-black text-emerald-700 mt-1">SDG {{ total_paid|floatformat:0|intcomma }}</div>
+        </div>
+        <div class="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-5">
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Purchased</div>
+            <div class="text-xl font-black text-slate-800 mt-1">SDG {{ net_purchased|floatformat:0|intcomma }}</div>
+        </div>
+    </div>
+
+    <!-- Printable statement -->
+    <div id="statement-print" class="bg-white rounded-[2rem] border border-slate-200/60 shadow-sm overflow-hidden">
+
+        <!-- Print-only document header -->
+        <div class="print-only" style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:10px;">
+                <div>
+                    <div style="font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#64748b;font-weight:800;">Pharmacy System</div>
+                    <div style="font-size:20px;font-weight:800;margin-top:2px;">Supplier Statement of Account</div>
+                    <div style="font-size:12px;color:#334155;margin-top:6px;">
+                        <strong>{{ supplier.name }}</strong>{% if supplier.phone_number %} · {{ supplier.phone_number }}{% endif %}{% if supplier.email %} · {{ supplier.email }}{% endif %}
+                    </div>
+                    <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                        Period: {% if has_filter %}{{ start_date|date:"M d, Y"|default:"Start" }} — {{ end_date|date:"M d, Y"|default:"Today" }}{% else %}All Transactions{% endif %}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;">Outstanding Payable (Now)</div>
+                    <div style="font-size:20px;font-weight:800;">SDG {{ supplier.balance|floatformat:0|intcomma }}</div>
+                    <div style="font-size:11px;color:#64748b;margin-top:6px;">
+                        Charges {{ total_debit|floatformat:0|intcomma }} · Credits {{ total_credit|floatformat:0|intcomma }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Screen ledger header -->
+        <div class="no-print px-8 py-6 border-b border-slate-100">
+            <h4 class="text-lg font-black text-slate-800">Transaction Ledger</h4>
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Oldest to newest · running balance</p>
+        </div>
+
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
+                        <th class="px-6 py-4 border-b border-slate-100">Date</th>
+                        <th class="px-6 py-4 border-b border-slate-100">Type</th>
+                        <th class="px-6 py-4 border-b border-slate-100">Details</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-right">Debit (Charges)</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-right">Credit (Payments)</th>
+                        <th class="px-6 py-4 border-b border-slate-100 text-right">Balance</th>
+                        <th class="px-6 py-4 border-b border-slate-100 no-print"></th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% if show_opening %}
+                    <tr class="bg-slate-50/40">
+                        <td class="px-6 py-4 text-sm font-bold text-slate-500 whitespace-nowrap">{{ start_date|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest">
+                                <i data-lucide="flag" class="w-3.5 h-3.5"></i>Opening</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm font-medium text-slate-500 italic">Balance brought forward</td>
+                        <td class="px-6 py-4 text-right text-slate-300">—</td>
+                        <td class="px-6 py-4 text-right text-slate-300">—</td>
+                        <td class="px-6 py-4 text-right text-sm font-black whitespace-nowrap {% if opening_balance > 0 %}text-red-500{% else %}text-slate-900{% endif %}">{{ opening_balance|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-4 no-print"></td>
+                    </tr>
+                    {% endif %}
+                    {% for e in entries %}
+                    <tr class="group hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-4 text-sm font-bold text-slate-700 whitespace-nowrap">{{ e.date|date:"M d, Y" }}</td>
+                        <td class="px-6 py-4">
+                            {% if e.kind == 'purchase' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-widest">
+                                <i data-lucide="package" class="w-3.5 h-3.5"></i>{{ e.type_label }}</span>
+                            {% elif e.kind == 'return' %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-black uppercase tracking-widest">
+                                <i data-lucide="corner-up-left" class="w-3.5 h-3.5"></i>{{ e.type_label }}</span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest">
+                                <i data-lucide="hand-coins" class="w-3.5 h-3.5"></i>{{ e.type_label }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-bold text-slate-800">{{ e.ref }}</div>
+                            {% if e.detail %}<div class="text-[11px] font-medium text-slate-400">{{ e.detail }}</div>{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm font-bold text-slate-800 whitespace-nowrap">
+                            {% if e.debit %}{{ e.debit|floatformat:0|intcomma }}{% else %}<span class="text-slate-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm font-bold text-emerald-600 whitespace-nowrap">
+                            {% if e.credit %}{{ e.credit|floatformat:0|intcomma }}{% else %}<span class="text-slate-300">—</span>{% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right text-sm font-black whitespace-nowrap {% if e.balance > 0 %}text-red-500{% else %}text-slate-900{% endif %}">
+                            {{ e.balance|floatformat:0|intcomma }}
+                        </td>
+                        <td class="px-6 py-4 text-right whitespace-nowrap no-print">
+                            {% if e.payment %}
+                            <div class="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button hx-get="{% url 'suppliers:update_payment' e.payment.id %}" hx-target="#modal-content"
+                                    class="p-2 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-lg transition-all">
+                                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                </button>
+                                <button hx-get="{% url 'suppliers:delete_payment' e.payment.id %}" hx-target="#modal-content"
+                                    class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not entries and not show_opening %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-24 text-center">
+                            <div class="flex flex-col items-center justify-center opacity-20">
+                                <i data-lucide="scroll-text" class="w-14 h-14 mb-3"></i>
+                                <p class="text-sm font-black uppercase tracking-widest">No transactions in this period</p>
+                                <p class="text-xs font-medium mt-1">Adjust the date range or clear the filter.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+                {% if entries or show_opening %}
+                <tfoot>
+                    <tr class="bg-slate-50 text-slate-800 font-black">
+                        <td colspan="3" class="px-6 py-5 text-right text-[10px] uppercase tracking-widest text-slate-400">Period Totals</td>
+                        <td class="px-6 py-5 text-right text-sm whitespace-nowrap">SDG {{ total_debit|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-5 text-right text-sm text-emerald-600 whitespace-nowrap">SDG {{ total_credit|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-5 text-right text-base whitespace-nowrap {% if closing_balance > 0 %}text-red-600{% else %}text-slate-900{% endif %}">SDG {{ closing_balance|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-5 no-print"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="7" class="px-6 py-3 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 border-t border-slate-100">
+                            Closing Balance{% if has_filter %} (as of {{ end_date|date:"M d, Y"|default:"today" }}){% endif %} — Amount Payable to Supplier
+                        </td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
