@@ -110,7 +110,7 @@
                                 <tr
                                     class="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
                                     <th class="px-6 py-4">Timestamp</th>
-                                    <!-- <th class="px-6 py-4">Type</th> -->
+                                    <th class="px-6 py-4">Type</th>
                                     <th class="px-6 py-4">Quantity</th>
                                     <th class="px-6 py-4">User</th>
                                 </tr>
@@ -119,18 +119,15 @@
                                 {% for movement in movements %}
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="px-6 py-4 text-slate-500 text-xs">{{ movement.timestamp|date:"M d, H:i"}}</td>
-                                    <!-- <td class="px-6 py-4">
-                                        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md 
-                                            {% if movement.type == 'IN' %}bg-green-100 text-green-600
-                                            {% elif movement.type == 'OUT' %}bg-blue-100 text-blue-600
-                                            {% elif movement.type == 'ADJUSTMENT' %}bg-amber-100 text-amber-600
-                                            {% else %}bg-slate-100 text-slate-600{% endif %}">
-                                            {{ movement.get_type_display }}
+                                    <td class="px-6 py-4">
+                                        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md
+                                            {% if movement.increases_stock %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %}">
+                                            {{ movement.get_movement_type_display }}
                                         </span>
-                                    </td> -->
+                                    </td>
                                     <td
-                                        class="px-6 py-4 font-bold {% if movement.quantity > 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                        {% if movement.quantity > 0 %}+{% endif %}{{ movement.quantity }}
+                                        class="px-6 py-4 font-bold {% if movement.signed_quantity > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if movement.signed_quantity > 0 %}+{% endif %}{{ movement.signed_quantity }}
                                     </td>
                                     <td class="px-6 py-4 text-slate-600 text-xs font-medium">{{movement.user.username|default:"System" }}</td>
                                 </tr>

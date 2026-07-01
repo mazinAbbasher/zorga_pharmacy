@@ -156,9 +156,20 @@ Double-clicking that shortcut opens the app in its native window, fully offline.
   `C:\Users\<name>\AppData\Local\PharmacySystem`
   - `db.sqlite3` — all pharmacy data (drugs, sales, customers, ...)
   - `media\` — uploaded files
+  - `backups\` — automatic and manual database backups (see below)
   - `pharmacy.log` — activity/error log
-- **Backups:** simply copy `db.sqlite3` somewhere safe regularly (USB/network).
-  To restore, copy it back into the same folder while the app is closed.
+- **Backups (built in — Settings → "Settings & Backup"):**
+  - The app **automatically saves a backup every time it is opened** (keeping the
+    most recent 15) to the `backups\` folder above. No action needed.
+  - **Download backup now** makes a fresh copy and downloads it — keep it on a
+    USB drive or cloud folder for off-site safety.
+  - **Restore from a file** loads a chosen backup. For safety the swap happens on
+    the **next launch**: the current data is copied to a `pre-restore` backup
+    first, then the app replaces the database when you close and reopen it.
+  - You can also make a backup from the command line: `python manage.py backup_db`
+    (useful for Windows Task Scheduler).
+  - Manual fallback: you can still copy `db.sqlite3` out of the folder while the
+    app is closed, and copy it back to restore.
 
 ---
 

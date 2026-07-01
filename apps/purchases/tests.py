@@ -38,6 +38,19 @@ class PurchaseFlowTests(TestCase):
                 data[f"items-{i}-{k}"] = v
         return self.client.post("/purchases/add/", data)
 
+    def test_purchase_via_view_updates_supplier_balance(self):
+        # Regression: the create view saves the purchase once with total_amount=0
+        # and again with the real total. The supplier balance must reflect the
+        # real total (what we now owe them), not stay at zero.
+        self.assertEqual(self.supplier.balance, Decimal("0.00"))
+        r = self._post([
+            {"drug": self.fifo.id, "batch_number": "", "quantity": 20,
+             "purchase_price": "2", "selling_price": "3", "expiry_date": ""},
+        ])
+        self.assertEqual(r.status_code, 302)
+        self.supplier.refresh_from_db()
+        self.assertEqual(self.supplier.balance, Decimal("40.00"))  # 20 * 2
+
     def test_multi_line_purchase_creates_batches(self):
         r = self._post([
             {"drug": self.fefo.id, "batch_number": "B1", "quantity": 10,

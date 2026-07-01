@@ -4,7 +4,6 @@ from .models import Purchase, PurchaseItem
 from .forms import PurchaseForm, PurchaseItemFormSet
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Sum
 from django.utils import timezone
 from django.template.defaultfilters import floatformat
 from decimal import Decimal
@@ -84,15 +83,8 @@ def return_purchase(request, pk):
             return render(request, 'purchases/partials/purchase_return_modal.html', {'purchase': purchase})
 
         # Recalculate supplier balance net of returns.
-        supplier = purchase.supplier
-        total_purchases = sum(
-            (p.net_amount for p in Purchase.objects.filter(supplier=supplier).prefetch_related('items')),
-            Decimal('0.00'),
-        )
-        from suppliers.models import Supplier, SupplierPayment
-        total_payments = SupplierPayment.objects.filter(supplier=supplier).aggregate(
-            Sum('amount'))['amount__sum'] or Decimal('0.00')
-        Supplier.objects.filter(pk=supplier.pk).update(balance=total_purchases - total_payments)
+        from core.signals import recalculate_supplier_balance
+        recalculate_supplier_balance(purchase.supplier)
 
         messages.success(
             request,

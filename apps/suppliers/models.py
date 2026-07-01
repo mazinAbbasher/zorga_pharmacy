@@ -25,7 +25,7 @@ class SupplierPayment(models.Model):
     PAYMENT_MODES = (
         ('CASH', 'Cash'),
         ('BANK', 'Bank Transfer'),
-        ('CHEQUE', 'Cheque'),
+        # ('CHEQUE', 'Cheque'),
     )
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=12, decimal_places=2)

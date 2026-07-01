@@ -44,6 +44,35 @@ def net_revenue(start_date, end_date):
     return _gross_revenue(start_date, end_date) - returned_revenue
 
 
+def revenue_by_payment_method(start_date, end_date):
+    """Net revenue grouped by payment method for the range.
+
+    Same net convention as :func:`net_revenue` — each method's gross
+    (total - discount) minus the value of items returned from its sales — so the
+    per-method figures sum to the range's overall net revenue.
+    """
+    gross = dict(
+        Sale.objects.filter(
+            is_refunded=False,
+            timestamp__date__range=[start_date, end_date],
+        )
+        .values_list('payment_method')
+        .annotate(total=Sum(F('total_amount') - F('discount')))
+    )
+    returns = dict(
+        SaleItem.objects.filter(
+            sale__is_refunded=False,
+            sale__timestamp__date__range=[start_date, end_date],
+        )
+        .values_list('sale__payment_method')
+        .annotate(total=Sum(F('unit_price') * F('returned_quantity'), output_field=_MONEY))
+    )
+    return {
+        method: (gross.get(method) or ZERO) - (returns.get(method) or ZERO)
+        for method in set(gross) | set(returns)
+    }
+
+
 def sales_summary(start_date, end_date):
     """Revenue, cost, profit and margin for non-refunded sales in the range,
     consistently net of discounts and partially returned items."""

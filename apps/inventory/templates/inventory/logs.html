@@ -61,8 +61,8 @@
                         <td class="px-6 py-5 text-center">
                             <div class="flex flex-col items-center">
                                 <span
-                                    class="text-sm font-black {% if log.movement_type == 'IN' %}text-green-600{% else %}text-red-500{% endif %}">
-                                    {% if log.movement_type == 'IN' %}+{% else %}-{% endif %}{{ log.quantity }}
+                                    class="text-sm font-black {% if log.signed_quantity > 0 %}text-green-600{% else %}text-red-500{% endif %}">
+                                    {% if log.signed_quantity > 0 %}+{% endif %}{{ log.signed_quantity }}
                                 </span>
                                 <span class="text-[9px] font-bold text-slate-300 uppercase">Qty Adj.</span>
                             </div>

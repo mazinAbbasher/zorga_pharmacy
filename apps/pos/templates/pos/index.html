@@ -122,18 +122,18 @@
                     </div>
 
                     <!-- Discount Section -->
-                    <div class="space-y-2">
+                    <div class="space-y-2 mb-2">
                         <label class="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-0.5">Special Discount</label>
                         <div class="relative">
                             <i data-lucide="tag" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-red-400 pointer-events-none"></i>
                             <input type="number" name="discount" id="discount-input" step="1" min="0" value="0"
-                                class="block w-full pl-9 pr-12 py-2.5 bg-red-50/30 border border-red-100 rounded-xl text-base font-bold text-red-700 focus:ring-4 focus:ring-red-500/10 focus:border-red-400 transition-all">
+                                class="block w-full pl-9 pr-12 py-2.5 bg-red-50/30 border border-red-100 rounded-xl text-base font-bold text-red-700 focus:ring-4 focus:ring-red-500/10 focus:border-red-400 transition-all [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none">
                             <span class="text-[10px] font-black text-red-300 uppercase absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">SDG</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-auto pt-4" id="cart-summary">
+                <div class="pt-4" id="cart-summary">
                     {% include 'pos/partials/cart_summary_content.html' %}
                 </div>
             </form>

@@ -55,9 +55,16 @@ class Drug(models.Model):
 
     @property
     def total_inventory_value(self):
-        # Value of non-expired stock
+        # Value of non-expired stock at cost (buy price) — what it's worth to us.
         today = timezone.now().date()
         return sum(b.quantity * b.purchase_price for b in self.batches.filter(self._not_expired(today)))
+
+    @property
+    def total_selling_value(self):
+        # Value of non-expired stock at selling price — the potential revenue if
+        # every on-hand unit sells at its current retail price.
+        today = timezone.now().date()
+        return sum(b.quantity * b.selling_price for b in self.batches.filter(self._not_expired(today)))
 
     @property
     def stock_status(self):

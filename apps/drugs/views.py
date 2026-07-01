@@ -66,6 +66,7 @@ def list(request):
         'out_of_stock_count': len([d for d in all_drugs if d.stock_status == 'OUT_OF_STOCK']),
         'expiring_soon_count': len([d for d in all_drugs if d.nearest_expiry_date and today <= d.nearest_expiry_date <= today + timedelta(days=90)]),
         'total_valuation': sum(d.total_inventory_value for d in all_drugs),
+        'total_retail_valuation': sum(d.total_selling_value for d in all_drugs),
     }
     
     categories = Category.objects.all().order_by('name')

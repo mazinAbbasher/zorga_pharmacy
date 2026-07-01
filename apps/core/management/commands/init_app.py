@@ -23,6 +23,13 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # A staged restore must be swapped in before any DB connection is opened
+        # (migrate below is the first one), so this comes first.
+        from core import backup
+
+        if backup.apply_pending_restore():
+            self.stdout.write(self.style.WARNING("Restored database from staged backup."))
+
         self.stdout.write("Applying database migrations...")
         call_command("migrate", interactive=False, verbosity=1)
 
@@ -31,6 +38,10 @@ class Command(BaseCommand):
             call_command("collectstatic", interactive=False, verbosity=0)
 
         self._ensure_admin()
+
+        # Automatic safety backup (no-op if a recent one already exists).
+        if backup.auto_backup_on_startup():
+            self.stdout.write("Saved an automatic database backup.")
 
     def _ensure_admin(self):
         User = get_user_model()

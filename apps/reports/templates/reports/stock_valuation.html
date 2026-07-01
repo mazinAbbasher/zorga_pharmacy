@@ -57,31 +57,40 @@
     </div>
 
     <!-- Summary cards (screen only) -->
-    <div class="no-print grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="md:col-span-1 bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden group">
+    <div class="no-print grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-primary-950 p-8 rounded-[2.5rem] shadow-2xl shadow-primary-900/20 relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-32 h-32 bg-accent-600/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-accent-600/20 transition-colors"></div>
             <div class="relative z-10">
                 <div class="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-6 backdrop-blur-md border border-white/10">
                     <i data-lucide="wallet" class="w-7 h-7"></i>
                 </div>
-                <h4 class="text-[10px] font-black text-slate-300/50 uppercase tracking-[0.2em]">Total Stock Value</h4>
+                <h4 class="text-[10px] font-black text-slate-300/50 uppercase tracking-[0.2em]">Stock Value <span class="text-slate-400/60">(at Cost)</span></h4>
                 <div class="flex items-baseline space-x-2 mt-2">
                     <span class="text-4xl font-black text-white">SDG {{ total_value|floatformat:0|intcomma }}</span>
                 </div>
+                <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-3">{{ total_units }} units · {{ batch_count }} batches</p>
             </div>
         </div>
-        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col justify-center">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Units in Stock</h4>
-            <div class="text-4xl font-black text-slate-900 mt-2">{{ total_units }}</div>
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col justify-center relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-accent-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+            <div class="w-14 h-14 rounded-2xl bg-accent-50 flex items-center justify-center text-accent-600 mb-6">
+                <i data-lucide="tag" class="w-7 h-7"></i>
+            </div>
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Retail Value <span class="text-slate-300">(at Selling Price)</span></h4>
+            <div class="text-4xl font-black text-slate-900 mt-2">SDG {{ total_retail_value|floatformat:0|intcomma }}</div>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center">
-                <i data-lucide="boxes" class="w-3 h-3 mr-1"></i> Across all available batches
+                <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> Potential revenue if sold
             </p>
         </div>
-        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col justify-center">
-            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Available Batches</h4>
-            <div class="text-4xl font-black text-slate-900 mt-2">{{ batch_count }}</div>
+        <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200/60 shadow-sm flex flex-col justify-center relative overflow-hidden group">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full -mr-12 -mt-12 blur-2xl"></div>
+            <div class="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-6">
+                <i data-lucide="coins" class="w-7 h-7"></i>
+            </div>
+            <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Potential Gross Profit</h4>
+            <div class="text-4xl font-black text-emerald-600 mt-2">SDG {{ potential_profit|floatformat:0|intcomma }}</div>
             <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center">
-                <i data-lucide="layers" class="w-3 h-3 mr-1"></i> In-stock &amp; not expired
+                <i data-lucide="percent" class="w-3 h-3 mr-1"></i> Retail minus cost of stock
             </p>
         </div>
     </div>
@@ -111,7 +120,9 @@
                         <th class="px-6 py-6">Expiry Date</th>
                         <th class="px-6 py-6 text-center">Quantity</th>
                         <th class="px-6 py-6 text-right">Buy Price</th>
-                        <th class="px-8 py-6 text-right">Total</th>
+                        <th class="px-6 py-6 text-right">Cost Value</th>
+                        <th class="px-6 py-6 text-right">Sell Price</th>
+                        <th class="px-8 py-6 text-right">Retail Value</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -137,11 +148,13 @@
                         </td>
                         <td class="px-6 py-5 text-center font-bold text-slate-700">{{ batch.quantity }}</td>
                         <td class="px-6 py-5 text-right font-mono text-slate-600">SDG {{ batch.purchase_price|floatformat:0|intcomma }}</td>
-                        <td class="px-8 py-5 text-right font-black text-slate-900">SDG {{ batch.line_total|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-5 text-right font-bold text-slate-700">SDG {{ batch.line_total|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-5 text-right font-mono text-slate-600">SDG {{ batch.selling_price|floatformat:0|intcomma }}</td>
+                        <td class="px-8 py-5 text-right font-black text-accent-600">SDG {{ batch.sell_line_total|floatformat:0|intcomma }}</td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="px-8 py-32 text-center text-slate-400">
+                        <td colspan="8" class="px-8 py-32 text-center text-slate-400">
                             <div class="flex flex-col items-center justify-center opacity-20">
                                 <i data-lucide="package-x" class="w-16 h-16 mb-4"></i>
                                 <span class="text-sm font-black uppercase tracking-widest">No Available Stock</span>
@@ -156,7 +169,9 @@
                         <td class="px-8 py-6 uppercase tracking-widest text-[11px] text-slate-500" colspan="3">Grand Total</td>
                         <td class="px-6 py-6 text-center">{{ total_units }} units</td>
                         <td class="px-6 py-6"></td>
-                        <td class="px-8 py-6 text-right text-accent-600">SDG {{ total_value|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-6 text-right">SDG {{ total_value|floatformat:0|intcomma }}</td>
+                        <td class="px-6 py-6"></td>
+                        <td class="px-8 py-6 text-right text-accent-600">SDG {{ total_retail_value|floatformat:0|intcomma }}</td>
                     </tr>
                 </tfoot>
                 {% endif %}

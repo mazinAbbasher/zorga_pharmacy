@@ -5,13 +5,20 @@ from django.utils import timezone
 from decimal import Decimal
 
 class Sale(models.Model):
+    # Only two payment methods are offered at checkout (see ACTIVE_PAYMENT_METHODS).
+    # 'CARD' and 'CREDIT' are retired: they can no longer be selected for new
+    # sales, but remain in the choices so get_payment_method_display() still
+    # renders any historical rows that used them with a readable label.
     PAYMENT_METHODS = (
         ('CASH', 'Cash'),
         ('BANK_TRANSFER', 'Bank Transfer'),
         ('CARD', 'Card'),
         ('CREDIT', 'Customer Credit'),
     )
-    
+
+    # The single source of truth for the methods a cashier may pick.
+    ACTIVE_PAYMENT_METHODS = ('CASH', 'BANK_TRANSFER')
+
     cashier = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     customer = models.ForeignKey('customers.Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='sales')
     timestamp = models.DateTimeField(default=timezone.now)

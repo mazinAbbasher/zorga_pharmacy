@@ -1,9 +1,10 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from pos.models import Sale, SaleItem
-from pos.analytics import sales_summary, net_revenue
+from pos.analytics import sales_summary, net_revenue, revenue_by_payment_method
 from drugs.models import Drug
-from django.db.models import Sum, F, Q, DecimalField, ExpressionWrapper
+from django.db.models import Sum, F, Q, Count, DecimalField, ExpressionWrapper
+from decimal import Decimal
 from django.utils import timezone
 from datetime import timedelta
 from core.decorators import admin_only, pharmacist_or_admin
@@ -60,12 +61,75 @@ def index(request):
     net_profit = summary['profit']
     profit_margin = summary['margin']
 
+    # Headline sales figures. "Today" and "Overall" ignore the filter range on
+    # purpose — they're fixed reference points. Overall spans from the first ever
+    # sale to today so it's a true lifetime total.
+    sales_today = net_revenue(today, today)
+    first_sale = Sale.objects.order_by('timestamp').values_list('timestamp', flat=True).first()
+    overall_start = first_sale.date() if first_sale else today
+    sales_overall = net_revenue(overall_start, today)
+
+    # Today's cash vs bank-transfer split (independent of the filter range).
+    pay_mix_today = revenue_by_payment_method(today, today)
+    cash_today = pay_mix_today.get('CASH', Decimal('0.00'))
+    transfer_today = pay_mix_today.get('BANK_TRANSFER', Decimal('0.00'))
+
+    # Payment-method split (within the selected range). Cash and Bank Transfer are
+    # the two active methods; anything else is legacy (old credit/card sales).
+    pay_mix = revenue_by_payment_method(start_date, end_date)
+    cash_sales = pay_mix.get('CASH', Decimal('0.00'))
+    transfer_sales = pay_mix.get('BANK_TRANSFER', Decimal('0.00'))
+    other_sales = sum(
+        (v for k, v in pay_mix.items() if k not in ('CASH', 'BANK_TRANSFER')),
+        Decimal('0.00'),
+    )
+    # Share of net revenue for the payment-mix bar (guard against divide-by-zero).
+    if total_revenue > 0:
+        cash_pct = cash_sales / total_revenue * 100
+        transfer_pct = transfer_sales / total_revenue * 100
+        other_pct = other_sales / total_revenue * 100
+    else:
+        cash_pct = transfer_pct = other_pct = Decimal('0.00')
+
+    # Operational stats for the range (non-refunded sales).
+    range_sales = Sale.objects.filter(
+        is_refunded=False, timestamp__date__range=[start_date, end_date]
+    )
+    order_stats = range_sales.aggregate(
+        count=Count('id'),
+        discounts=Sum('discount'),
+    )
+    transaction_count = order_stats['count'] or 0
+    total_discounts = order_stats['discounts'] or Decimal('0.00')
+    avg_sale_value = (total_revenue / transaction_count) if transaction_count else Decimal('0.00')
+    units_sold = SaleItem.objects.filter(
+        sale__is_refunded=False,
+        sale__timestamp__date__range=[start_date, end_date],
+    ).aggregate(qty=Sum(F('quantity') - F('returned_quantity')))['qty'] or 0
+
     context = {
         'sales_trend': sales_trend,
         'top_selling': top_selling,
         'total_revenue': total_revenue,
         'net_profit': net_profit,
         'profit_margin': profit_margin,
+        # Headline sales
+        'sales_today': sales_today,
+        'sales_overall': sales_overall,
+        'cash_today': cash_today,
+        'transfer_today': transfer_today,
+        # Payment breakdown (range)
+        'cash_sales': cash_sales,
+        'transfer_sales': transfer_sales,
+        'other_sales': other_sales,
+        'cash_pct': cash_pct,
+        'transfer_pct': transfer_pct,
+        'other_pct': other_pct,
+        # Operational insights (range)
+        'transaction_count': transaction_count,
+        'total_discounts': total_discounts,
+        'avg_sale_value': avg_sale_value,
+        'units_sold': units_sold,
         'today': today,
         'start_date': start_date,
         'end_date': end_date,
@@ -136,13 +200,18 @@ def stock_valuation(request):
         F('quantity') * F('purchase_price'),
         output_field=DecimalField(max_digits=16, decimal_places=2),
     )
+    # Same line, valued at the selling price: the revenue this batch can realise.
+    sell_line_total = ExpressionWrapper(
+        F('quantity') * F('selling_price'),
+        output_field=DecimalField(max_digits=16, decimal_places=2),
+    )
 
     # "Available" = on hand (qty > 0) and not expired (FIFO null-expiry counts).
     # Within a drug, nearest expiry first so soon-to-expire stock stands out.
     batches = (
         Batch.objects.filter(Drug._not_expired(today), quantity__gt=0)
         .select_related('drug')
-        .annotate(line_total=line_total)
+        .annotate(line_total=line_total, sell_line_total=sell_line_total)
         .order_by('drug__trade_name', 'expiry_date', 'batch_number')
     )
     if query:
@@ -154,12 +223,19 @@ def stock_valuation(request):
 
     totals = batches.aggregate(
         total_value=Sum(line_total),
+        total_retail_value=Sum(sell_line_total),
         total_units=Sum('quantity'),
     )
 
+    total_value = totals['total_value'] or 0
+    total_retail_value = totals['total_retail_value'] or 0
+
     return render(request, 'reports/stock_valuation.html', {
         'batches': batches,
-        'total_value': totals['total_value'] or 0,
+        'total_value': total_value,
+        'total_retail_value': total_retail_value,
+        # Unrealised gross profit locked in current stock (retail minus cost).
+        'potential_profit': total_retail_value - total_value,
         'total_units': totals['total_units'] or 0,
         'batch_count': batches.count(),
         'query': query,

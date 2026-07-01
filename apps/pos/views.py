@@ -39,12 +39,10 @@ def index(request):
     context['customers'] = Customer.objects.all()
     context['all_drugs'] = Drug.objects.all().order_by('trade_name')
     
-    # Define payment options for the premium UI
+    # Only the two active payment methods are offered at checkout.
     context['payment_options'] = [
         ('CASH', 'banknote', 'Cash'),
-        ('CARD', 'credit-card', 'Card'),
-        ('BANK_TRANSFER', 'smartphone-nfc', 'Transfer'),
-        ('CREDIT', 'user-plus', 'Credit'),
+        ('BANK_TRANSFER', 'landmark', 'Bank Transfer'),
     ]
 
     return render(request, 'pos/index.html', context)
@@ -168,7 +166,11 @@ def checkout(request):
         messages.error(request, "Cart is empty.")
         return redirect('pos:index')
     
+    # Guard against tampered/legacy values: only the two active methods are
+    # accepted, otherwise fall back to Cash.
     payment_method = request.POST.get('payment_method', 'CASH')
+    if payment_method not in Sale.ACTIVE_PAYMENT_METHODS:
+        payment_method = 'CASH'
     try:
         discount = Decimal(request.POST.get('discount', '0.00'))
         if discount < 0:
@@ -182,11 +184,7 @@ def checkout(request):
     if customer_id:
         from customers.models import Customer
         customer = Customer.objects.filter(id=customer_id).first()
-    
-    if payment_method == 'CREDIT' and not customer:
-        messages.error(request, "A customer must be selected for credit payments.")
-        return redirect('pos:index')
-    
+
     # 1. First Pass: Validate and Prep (Calculate Total based on Session Prices)
     total_amount = Decimal('0.00')
     for drug_id, item in cart.items():

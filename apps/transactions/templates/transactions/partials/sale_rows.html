@@ -20,7 +20,7 @@
     </td>
     <td class="px-6 py-5">
         <span
-            class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider {% if sale.payment_method == 'CASH' %}bg-green-50 text-green-700 border border-green-100{% elif sale.payment_method == 'CREDIT' %}bg-orange-50 text-orange-700 border border-orange-100{% else %}bg-blue-50 text-blue-700 border border-blue-100{% endif %}">
+            class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider {% if sale.payment_method == 'CASH' %}bg-green-50 text-green-700 border border-green-100{% elif sale.payment_method == 'BANK_TRANSFER' %}bg-blue-50 text-blue-700 border border-blue-100{% else %}bg-orange-50 text-orange-700 border border-orange-100{% endif %}">
             {{ sale.get_payment_method_display }}
         </span>
     </td>
