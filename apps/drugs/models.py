@@ -10,9 +10,19 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     class Meta:
         verbose_name_plural = "Categories"
+
+class Manufacturer(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    description = models.TextField(blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
 
 class Drug(models.Model):
     DISPENSING_CHOICES = (
@@ -22,7 +32,7 @@ class Drug(models.Model):
 
     trade_name = models.CharField(max_length=200)
     scientific_name = models.CharField(max_length=200, blank=True)
-    manufacturer = models.CharField(max_length=200, blank=True)
+    manufacturer = models.ForeignKey(Manufacturer, on_delete=models.SET_NULL, null=True, blank=True, related_name='drugs')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='drugs')
 
     barcode = models.CharField(max_length=100, unique=True, blank=True, null=True)

@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django import forms
 
-from drugs.models import Batch, Category
+from drugs.models import Batch, Category, Manufacturer
 from suppliers.models import Supplier
 from purchases.models import PurchaseItem
 
@@ -26,6 +26,7 @@ class BulkPriceUpdateForm(forms.Form):
         ('all', 'All products'),
         ('in_stock', 'In-stock products only (stock > 0)'),
         ('category', 'A specific category'),
+        ('manufacturer', 'A specific manufacturer'),
         ('supplier', 'A specific supplier'),
     ]
     TARGET_CHOICES = [
@@ -54,6 +55,11 @@ class BulkPriceUpdateForm(forms.Form):
         required=False,
         empty_label='Select a category…',
     )
+    manufacturer = forms.ModelChoiceField(
+        queryset=Manufacturer.objects.order_by('name'),
+        required=False,
+        empty_label='Select a manufacturer…',
+    )
     supplier = forms.ModelChoiceField(
         queryset=Supplier.objects.order_by('name'),
         required=False,
@@ -68,6 +74,8 @@ class BulkPriceUpdateForm(forms.Form):
 
         if scope == 'category' and not cleaned.get('category'):
             self.add_error('category', 'Choose a category to update.')
+        if scope == 'manufacturer' and not cleaned.get('manufacturer'):
+            self.add_error('manufacturer', 'Choose a manufacturer to update.')
         if scope == 'supplier' and not cleaned.get('supplier'):
             self.add_error('supplier', 'Choose a supplier to update.')
 
@@ -111,6 +119,8 @@ class BulkPriceUpdateForm(forms.Form):
             batches = batches.filter(quantity__gt=0)
         elif scope == 'category':
             batches = batches.filter(drug__category=self.cleaned_data['category'])
+        elif scope == 'manufacturer':
+            batches = batches.filter(drug__manufacturer=self.cleaned_data['manufacturer'])
         elif scope == 'supplier':
             # Batches have no direct supplier link; a product "comes from" a
             # supplier if it was ever purchased from them.

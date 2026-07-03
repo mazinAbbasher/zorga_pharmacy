@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .models import Drug, Category
+from .models import Drug, Category, Manufacturer
 from .forms import DrugForm
 from django.contrib import messages
 from core.decorators import pharmacist_or_admin
@@ -225,3 +225,68 @@ def category_delete(request, pk):
     
     template = 'drugs/partials/confirm_category_delete_modal.html' if request.headers.get('HX-Request') else 'drugs/confirm_delete.html'
     return render(request, template, {'category': category})
+
+
+# Manufacturer Views
+def _render_manufacturer_list_response(request, success_msg=None):
+    if success_msg:
+        messages.success(request, success_msg)
+    response = HttpResponse()
+    response['HX-Refresh'] = 'true'
+    return response
+
+@login_required
+@pharmacist_or_admin
+def manufacturer_list(request):
+    manufacturers = Manufacturer.objects.all().order_by('name')
+    if request.headers.get('HX-Request') and not request.headers.get('HX-Target') == 'modal-content':
+        return render(request, 'drugs/partials/manufacturer_list_rows.html', {'manufacturers': manufacturers})
+    return render(request, 'drugs/manufacturer_list.html', {'manufacturers': manufacturers})
+
+@login_required
+@pharmacist_or_admin
+def manufacturer_create(request):
+    from .forms import ManufacturerForm
+    if request.method == 'POST':
+        form = ManufacturerForm(request.POST)
+        if form.is_valid():
+            form.save()
+            if request.headers.get('HX-Request'):
+                return _render_manufacturer_list_response(request, "Manufacturer created successfully.")
+            return redirect('drugs:manufacturer_list')
+    else:
+        form = ManufacturerForm()
+
+    template = 'drugs/partials/manufacturer_form_modal.html' if request.headers.get('HX-Request') else 'drugs/form.html'
+    return render(request, template, {'form': form, 'title': 'Create New Manufacturer'})
+
+@login_required
+@pharmacist_or_admin
+def manufacturer_update(request, pk):
+    from .forms import ManufacturerForm
+    manufacturer = get_object_or_404(Manufacturer, pk=pk)
+    if request.method == 'POST':
+        form = ManufacturerForm(request.POST, instance=manufacturer)
+        if form.is_valid():
+            form.save()
+            if request.headers.get('HX-Request'):
+                return _render_manufacturer_list_response(request, "Manufacturer updated successfully.")
+            return redirect('drugs:manufacturer_list')
+    else:
+        form = ManufacturerForm(instance=manufacturer)
+
+    template = 'drugs/partials/manufacturer_form_modal.html' if request.headers.get('HX-Request') else 'drugs/form.html'
+    return render(request, template, {'form': form, 'title': 'Edit Manufacturer', 'manufacturer': manufacturer})
+
+@login_required
+@pharmacist_or_admin
+def manufacturer_delete(request, pk):
+    manufacturer = get_object_or_404(Manufacturer, pk=pk)
+    if request.method == 'POST':
+        manufacturer.delete()
+        if request.headers.get('HX-Request'):
+            return _render_manufacturer_list_response(request, "Manufacturer deleted successfully.")
+        return redirect('drugs:manufacturer_list')
+
+    template = 'drugs/partials/confirm_manufacturer_delete_modal.html' if request.headers.get('HX-Request') else 'drugs/confirm_delete.html'
+    return render(request, template, {'manufacturer': manufacturer})

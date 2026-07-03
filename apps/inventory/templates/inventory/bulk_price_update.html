@@ -78,6 +78,13 @@
                         {% for e in form.category.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
                     </div>
 
+                    <!-- Manufacturer (conditional) -->
+                    <div id="manufacturer-wrap" class="space-y-2 mb-6 hidden">
+                        <label class="block text-sm font-semibold text-slate-700">Manufacturer</label>
+                        {% render_field form.manufacturer class="input" %}
+                        {% for e in form.manufacturer.errors %}<p class="text-xs text-red-600 mt-1">{{ e }}</p>{% endfor %}
+                    </div>
+
                     <!-- Supplier (conditional) -->
                     <div id="supplier-wrap" class="space-y-2 mb-8 hidden">
                         <label class="block text-sm font-semibold text-slate-700">Supplier</label>
@@ -119,6 +126,7 @@
     function toggleScopeFields() {
         const scope = document.getElementById('id_scope').value;
         document.getElementById('category-wrap').classList.toggle('hidden', scope !== 'category');
+        document.getElementById('manufacturer-wrap').classList.toggle('hidden', scope !== 'manufacturer');
         document.getElementById('supplier-wrap').classList.toggle('hidden', scope !== 'supplier');
     }
     toggleScopeFields();
