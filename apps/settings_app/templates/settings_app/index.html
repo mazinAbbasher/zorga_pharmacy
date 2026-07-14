@@ -116,8 +116,9 @@
                                         title="Download" class="p-2 rounded-lg text-slate-500 hover:text-accent hover:bg-slate-100">
                                         <i data-lucide="download" class="w-4 h-4"></i>
                                     </a>
+                                    {% with restore_dt=b.created|date:"M d, Y H:i" %}
                                     <form method="post" action="{% url 'settings_app:restore' %}" class="inline"
-                                        onsubmit="return confirm('Restore this backup from {{ b.created|date:'M d, Y H:i' }}? All current data will be replaced when you restart the app. A safety copy is saved first.');">
+                                        onsubmit="return confirm('Restore this backup from {{ restore_dt }}? All current data will be replaced when you restart the app. A safety copy is saved first.');">
                                         {% csrf_token %}
                                         <input type="hidden" name="existing" value="{{ b.name }}">
                                         <button type="submit" title="Restore this backup"
@@ -125,6 +126,7 @@
                                             <i data-lucide="history" class="w-4 h-4"></i>
                                         </button>
                                     </form>
+                                    {% endwith %}
                                     <form method="post" action="{% url 'settings_app:backup_delete' b.name %}" class="inline"
                                         onsubmit="return confirm('Delete this backup permanently?');">
                                         {% csrf_token %}
