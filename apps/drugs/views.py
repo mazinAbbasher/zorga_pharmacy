@@ -86,8 +86,13 @@ def list(request):
         )
         drugs = drugs.filter(Exists(soon_window))
 
-    # Headline stats (computed with dedicated aggregate queries, not by walking
-    # every drug in Python).
+    # HTMX filter/search requests only swap the table body, so skip the headline
+    # stats and filter-dropdown data — just return the rows.
+    if request.headers.get('HX-Request') and request.headers.get('HX-Target') != 'modal-content':
+        return render(request, 'drugs/partials/drug_list_rows.html', {'drugs': drugs})
+
+    # Full-page render: headline stats via dedicated aggregate queries (not by
+    # walking every drug in Python).
     restock_total = restock_needed_drugs(today).count()
     out_of_stock_count = (
         Drug.objects
@@ -115,21 +120,15 @@ def list(request):
         stats['total_valuation'] = valuation['cost'] or Decimal('0.00')
         stats['total_retail_valuation'] = valuation['retail'] or Decimal('0.00')
 
-    categories = Category.objects.all().order_by('name')
-
     context = {
         'drugs': drugs,
         'query': query,
-        'categories': categories,
+        'categories': Category.objects.all().order_by('name'),
         'selected_category': category_id,
         'selected_status': stock_status,
         'selected_expiry': expiry_status,
         'stats': stats,
     }
-
-    if request.headers.get('HX-Request') and not request.headers.get('HX-Target') == 'modal-content':
-        return render(request, 'drugs/partials/drug_list_rows.html', context)
-
     return render(request, 'drugs/index.html', context)
 
 @login_required
