@@ -55,7 +55,8 @@
             </div>
         </div>
 
-        <!-- Inventory Value Card -->
+        <!-- Inventory Value Card (financial — admin only) -->
+        {% if user.is_admin %}
         <div
             class="bg-primary-950 p-6 rounded-[2rem] border border-white/5 shadow-xl shadow-primary-900/20 group relative overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 bg-accent-600/10 rounded-full -mr-12 -mt-12 blur-2xl"></div>
@@ -80,6 +81,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
     <!-- Advanced Filter Bar & Search -->
@@ -124,6 +126,7 @@
                 <select name="status"
                     class="block w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold appearance-none cursor-pointer focus:ring-4 focus:ring-accent-500/10 focus:border-accent-600 transition-all">
                     <option value="">Any Stock</option>
+                    <option value="restock" {% if selected_status == 'restock' %}selected{% endif %}>Needs Restock 🔄</option>
                     <option value="low" {% if selected_status == 'low' %}selected{% endif %}>Low Stock ⚠️</option>
                     <option value="out" {% if selected_status == 'out' %}selected{% endif %}>Out of Stock 🚨</option>
                 </select>
@@ -163,7 +166,7 @@
                         <th class="px-8 py-6">Product Information</th>
                         <th class="px-6 py-6 text-center">Classification</th>
                         <th class="px-6 py-6">Availability</th>
-                        <th class="px-6 py-6 font-mono">Cost Value</th>
+                        <th class="px-6 py-6 font-mono">Selling Price</th>
                         <th class="px-6 py-6">Primary Expiry</th>
                         <th class="px-8 py-6 text-right">Options</th>
                     </tr>

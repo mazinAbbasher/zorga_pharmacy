@@ -11,7 +11,7 @@ from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from drugs.models import Drug, Batch
-from drugs.selectors import restock_needed_drugs, expiring_soon_count
+from drugs.selectors import restock_needed_drugs, expiring_soon_count, EXPIRING_SOON_DAYS
 from .models import StockMovement
 from .forms import BulkPriceUpdateForm
 
@@ -21,14 +21,22 @@ from core.decorators import pharmacist_or_admin, admin_only
 @pharmacist_or_admin
 def index(request):
     today = timezone.now().date()
-    near_expiry_date = today + timedelta(days=30)
+    near_expiry_date = today + timedelta(days=EXPIRING_SOON_DAYS)
 
     # Shared selectors keep these counts identical to the dashboard and to the
     # per-row RESTOCK / expiry badges (non-expired stock only).
     low_stock_count = restock_needed_drugs(today).count()
-    expiring_soon_count_value = expiring_soon_count(days=30, today=today)
+    expiring_soon_count_value = expiring_soon_count(today=today)
 
-    drugs = Drug.objects.all().order_by('trade_name')
+    # select_related + prefetch_related lets each row's stock_status /
+    # total_quantity / nearest_expiry_date read from cache instead of querying
+    # per row — this is what stops the page taking several seconds to open.
+    drugs = (
+        Drug.objects
+        .select_related('category')
+        .prefetch_related('batches')
+        .order_by('trade_name')
+    )
 
     context = {
         'drugs': drugs,

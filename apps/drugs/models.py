@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.db.models import Q
 from django.core.validators import MinValueValidator
@@ -53,28 +55,44 @@ class Drug(models.Model):
         # all (FIFO/non-perishable products may omit the expiry date).
         return Q(expiry_date__gte=today) | Q(expiry_date__isnull=True)
 
+    @staticmethod
+    def _batch_not_expired(batch, today):
+        # Python mirror of ``_not_expired`` for iterating a prefetched batch set
+        # without triggering a new query per property access.
+        return batch.expiry_date is None or batch.expiry_date >= today
+
+    # NB: the value/quantity/expiry properties below iterate ``self.batches.all()``
+    # rather than ``self.batches.filter(...)`` on purpose. When the caller has
+    # ``prefetch_related('batches')`` (the list/inventory pages do), ``.all()``
+    # reads the prefetched cache and costs zero extra queries, which is what keeps
+    # those pages fast. Without prefetch it still does a single fetch. The results
+    # are identical to the previous filter-based versions.
     @property
     def total_quantity(self):
         today = timezone.now().date()
-        return sum(b.quantity for b in self.batches.filter(self._not_expired(today)))
+        return sum(b.quantity for b in self.batches.all()
+                   if self._batch_not_expired(b, today))
 
     @property
     def expired_quantity(self):
         today = timezone.now().date()
-        return sum(b.quantity for b in self.batches.filter(expiry_date__lt=today))
+        return sum(b.quantity for b in self.batches.all()
+                   if b.expiry_date is not None and b.expiry_date < today)
 
     @property
     def total_inventory_value(self):
         # Value of non-expired stock at cost (buy price) — what it's worth to us.
         today = timezone.now().date()
-        return sum(b.quantity * b.purchase_price for b in self.batches.filter(self._not_expired(today)))
+        return sum(b.quantity * b.purchase_price for b in self.batches.all()
+                   if self._batch_not_expired(b, today))
 
     @property
     def total_selling_value(self):
         # Value of non-expired stock at selling price — the potential revenue if
         # every on-hand unit sells at its current retail price.
         today = timezone.now().date()
-        return sum(b.quantity * b.selling_price for b in self.batches.filter(self._not_expired(today)))
+        return sum(b.quantity * b.selling_price for b in self.batches.all()
+                   if self._batch_not_expired(b, today))
 
     @property
     def stock_status(self):
@@ -110,16 +128,34 @@ class Drug(models.Model):
         return ('expiry_date', 'created_at')
 
     def active_batches(self):
-        """Non-expired batches with stock, ordered by the dispensing strategy."""
+        """Non-expired batches with stock, ordered by the dispensing strategy.
+
+        Query-based (does not use the prefetch cache); the POS dispensing path
+        relies on this reading committed stock at call time.
+        """
         today = timezone.now().date()
         return self.batches.filter(
             self._not_expired(today), quantity__gt=0
         ).order_by(*self.dispense_order)
 
+    def _next_dispense_batch(self):
+        """The batch that would be dispensed next, computed from the prefetched
+        batch set (prefetch-friendly mirror of ``active_batches().first()``)."""
+        today = timezone.now().date()
+        active = [b for b in self.batches.all()
+                  if b.quantity > 0 and self._batch_not_expired(b, today)]
+        if not active:
+            return None
+        if self.dispensing_strategy == 'FIFO':
+            active.sort(key=lambda b: (b.created_at, b.expiry_date or datetime.date.max))
+        else:  # FEFO — nearest expiry first
+            active.sort(key=lambda b: (b.expiry_date or datetime.date.max, b.created_at))
+        return active[0]
+
     @property
     def current_price(self):
         # Price of the next batch to be dispensed (per FIFO/FEFO strategy).
-        active_batch = self.active_batches().first()
+        active_batch = self._next_dispense_batch()
         return active_batch.selling_price if active_batch else Decimal('0.00')
 
     @property
@@ -129,15 +165,16 @@ class Drug(models.Model):
         # active batch in sync, so this acts as the per-product cost. Historical
         # invoices (PurchaseItem) and past sale costs (SaleItem.unit_cost) keep
         # their own frozen values and are unaffected by changing this.
-        active_batch = self.active_batches().first()
+        active_batch = self._next_dispense_batch()
         return active_batch.purchase_price if active_batch else Decimal('0.00')
 
     @property
     def nearest_expiry_date(self):
-        # Returns the nearest expiry date of active non-expired batches
+        # Nearest expiry date among active (in-stock, non-expired) batches.
         today = timezone.now().date()
-        active_batch = self.batches.filter(quantity__gt=0, expiry_date__gte=today).order_by('expiry_date').first()
-        return active_batch.expiry_date if active_batch else None
+        dates = [b.expiry_date for b in self.batches.all()
+                 if b.quantity > 0 and b.expiry_date is not None and b.expiry_date >= today]
+        return min(dates) if dates else None
 
     def __str__(self):
         return f"{self.trade_name} ({self.scientific_name})"

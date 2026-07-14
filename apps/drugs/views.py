@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
-from .models import Drug, Category, Manufacturer
+from django.db.models import Q, F, Sum, Value, Exists, OuterRef, DecimalField
+from django.db.models.functions import Coalesce
+from .models import Drug, Category, Manufacturer, Batch
+from .selectors import restock_needed_drugs, expiring_soon_count, EXPIRING_SOON_DAYS
 from .forms import DrugForm
 from django.contrib import messages
 from core.decorators import pharmacist_or_admin
@@ -21,14 +23,32 @@ def _render_drug_list_response(request, success_msg=None):
 
 @login_required
 def list(request):
-    query = request.GET.get('q', '')
+    query = request.GET.get('q', '').strip()
     category_id = request.GET.get('category', '')
     stock_status = request.GET.get('status', '')
     expiry_status = request.GET.get('expiry', '')
-    
-    drugs = Drug.objects.all().order_by('trade_name')
+
     today = timezone.now().date()
-    
+    not_expired = Q(batches__expiry_date__gte=today) | Q(batches__expiry_date__isnull=True)
+
+    # Base list query. select_related + prefetch_related means the per-row
+    # template properties (stock_status, current_price, nearest_expiry_date, …)
+    # read from cache instead of firing a query each — this is what removed the
+    # multi-second load. ``sellable_qty`` / ``expired_qty`` are annotated so the
+    # stock/expiry filters run in the database rather than in Python.
+    drugs = (
+        Drug.objects
+        .select_related('category', 'manufacturer')
+        .prefetch_related('batches')
+        .annotate(
+            sellable_qty=Coalesce(Sum('batches__quantity', filter=not_expired), Value(0)),
+            expired_qty=Coalesce(
+                Sum('batches__quantity', filter=Q(batches__expiry_date__lt=today)), Value(0)
+            ),
+        )
+        .order_by('trade_name')
+    )
+
     # Category Filter
     if category_id:
         try:
@@ -36,41 +56,67 @@ def list(request):
             drugs = drugs.filter(category_id=category_id)
         except (ValueError, TypeError):
             category_id = ''
-    
+
     # Text Search
     if query:
         drugs = drugs.filter(
-            Q(trade_name__icontains=query) | 
+            Q(trade_name__icontains=query) |
             Q(scientific_name__icontains=query) |
             Q(barcode__icontains=query)
         )
-        
-    # Stock Status Filter
+
+    # Stock Status Filter (mirrors Drug.stock_status: OUT = 0 sellable,
+    # LOW = 0 < sellable <= threshold, RESTOCK = either of those).
     if stock_status == 'low':
-        drugs = [d for d in drugs if d.stock_status == 'LOW_STOCK']
+        drugs = drugs.filter(sellable_qty__gt=0, sellable_qty__lte=F('minimum_stock_alert'))
     elif stock_status == 'out':
-        drugs = [d for d in drugs if d.stock_status == 'OUT_OF_STOCK']
-        
+        drugs = drugs.filter(sellable_qty__lte=0)
+    elif stock_status == 'restock':
+        drugs = drugs.filter(sellable_qty__lte=F('minimum_stock_alert'))
+
     # Expiry Filter
     if expiry_status == 'expired':
-        drugs = [d for d in drugs if d.nearest_expiry_date and d.nearest_expiry_date < today]
+        drugs = drugs.filter(expired_qty__gt=0)
     elif expiry_status == 'soon':
-        ninety_days_away = today + timedelta(days=90)
-        drugs = [d for d in drugs if d.nearest_expiry_date and today <= d.nearest_expiry_date <= ninety_days_away]
+        soon_window = Batch.objects.filter(
+            drug=OuterRef('pk'),
+            quantity__gt=0,
+            expiry_date__gte=today,
+            expiry_date__lte=today + timedelta(days=EXPIRING_SOON_DAYS),
+        )
+        drugs = drugs.filter(Exists(soon_window))
 
-    # Dashboard Stats
-    all_drugs = Drug.objects.all()
+    # Headline stats (computed with dedicated aggregate queries, not by walking
+    # every drug in Python).
+    restock_total = restock_needed_drugs(today).count()
+    out_of_stock_count = (
+        Drug.objects
+        .annotate(sellable_qty=Coalesce(Sum('batches__quantity', filter=not_expired), Value(0)))
+        .filter(sellable_qty__lte=0)
+        .count()
+    )
     stats = {
-        'total_products': all_drugs.count(),
-        'low_stock_count': len([d for d in all_drugs if d.stock_status == 'LOW_STOCK']),
-        'out_of_stock_count': len([d for d in all_drugs if d.stock_status == 'OUT_OF_STOCK']),
-        'expiring_soon_count': len([d for d in all_drugs if d.nearest_expiry_date and today <= d.nearest_expiry_date <= today + timedelta(days=90)]),
-        'total_valuation': sum(d.total_inventory_value for d in all_drugs),
-        'total_retail_valuation': sum(d.total_selling_value for d in all_drugs),
+        'total_products': Drug.objects.count(),
+        'out_of_stock_count': out_of_stock_count,
+        'low_stock_count': restock_total - out_of_stock_count,
+        'expiring_soon_count': expiring_soon_count(today=today),
     }
-    
+    # Cost/retail valuation is admin-only (hidden from pharmacists) and is the
+    # one genuinely expensive figure, so only compute it when it will be shown.
+    if request.user.is_admin():
+        money = DecimalField(max_digits=16, decimal_places=2)
+        valuation = (
+            Batch.objects.filter(Drug._not_expired(today), quantity__gt=0)
+            .aggregate(
+                cost=Sum(F('quantity') * F('purchase_price'), output_field=money),
+                retail=Sum(F('quantity') * F('selling_price'), output_field=money),
+            )
+        )
+        stats['total_valuation'] = valuation['cost'] or Decimal('0.00')
+        stats['total_retail_valuation'] = valuation['retail'] or Decimal('0.00')
+
     categories = Category.objects.all().order_by('name')
-    
+
     context = {
         'drugs': drugs,
         'query': query,
@@ -83,7 +129,7 @@ def list(request):
 
     if request.headers.get('HX-Request') and not request.headers.get('HX-Target') == 'modal-content':
         return render(request, 'drugs/partials/drug_list_rows.html', context)
-    
+
     return render(request, 'drugs/index.html', context)
 
 @login_required

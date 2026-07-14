@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from pos.models import Sale
 from pos.analytics import net_revenue
@@ -8,6 +8,11 @@ from django.utils import timezone
 
 @login_required
 def index(request):
+    # The dashboard surfaces revenue/profit figures, so it is admin-only.
+    # Pharmacists are sent to their workspace (the POS terminal) instead.
+    if not request.user.is_admin():
+        return redirect('pos:index')
+
     today = timezone.now().date()
     start_of_month = today.replace(day=1)
 
@@ -18,7 +23,7 @@ def index(request):
 
     # Inventory alerts (shared selectors keep these identical to the inventory page).
     low_stock_count = restock_needed_drugs(today).count()
-    expiring_soon_count_value = expiring_soon_count(days=30, today=today)
+    expiring_soon_count_value = expiring_soon_count(today=today)
 
     recent_sales = Sale.objects.all().order_by('-timestamp')[:10]
 

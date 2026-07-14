@@ -69,7 +69,7 @@
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Low / Out of Stock</p>
                 <h3 class="text-3xl font-black text-slate-900 mt-1">{{ low_stock_count }}</h3>
             </div>
-            <a href="{% url 'inventory:index' %}?filter=low_stock"
+            <a href="{% url 'drugs:list' %}?status=restock"
                 class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-amber-600 hover:text-amber-700 transition-colors">
                 <span>Restock Inventory</span>
                 <i data-lucide="chevron-right" class="w-4 h-4"></i>
@@ -89,7 +89,7 @@
                 <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Expiring Soon</p>
                 <h3 class="text-3xl font-black text-slate-900 mt-1">{{ expiring_soon_count }}</h3>
             </div>
-            <a href="{% url 'inventory:index' %}?filter=expiring"
+            <a href="{% url 'drugs:list' %}?expiry=soon"
                 class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-red-600 hover:text-red-700 transition-colors">
                 <span>View Expiries</span>
                 <i data-lucide="chevron-right" class="w-4 h-4"></i>

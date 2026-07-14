@@ -1,6 +1,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
+from drugs.models import Drug
 from .models import Purchase, PurchaseItem
 
 
@@ -42,6 +43,8 @@ class PurchaseItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Present drugs alphabetically so the (searchable) picker is easy to scan.
+        self.fields['drug'].queryset = Drug.objects.order_by('trade_name')
         # Whether batch number / expiry are required depends on the selected
         # drug's strategy (FEFO requires both; FIFO takes neither), so make them
         # optional at field level and enforce the rule in clean().

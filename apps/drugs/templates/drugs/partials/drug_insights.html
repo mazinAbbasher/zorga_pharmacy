@@ -13,11 +13,13 @@
                         <span class="text-slate-500 font-medium">Expired Units</span>
                         <span class="font-black text-red-500">{{ drug.expired_quantity }}</span>
                     </div>
+                    {% if user.is_admin %}
                     <div class="h-px bg-slate-50"></div>
                     <div class="flex justify-between items-center text-sm">
                         <span class="text-slate-500 font-medium font-bold">Inventory Value</span>
                         <span class="font-black text-accent-600">SDG {{ drug.total_inventory_value|floatformat:0|intcomma}}</span>
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -57,7 +59,7 @@
                                     <th class="px-6 py-4">Batch No.</th>
                                     <th class="px-6 py-4">Quantity</th>
                                     <th class="px-6 py-4">Expiry</th>
-                                    <th class="px-6 py-4">Unit Cost</th>
+                                    {% if user.is_admin %}<th class="px-6 py-4">Unit Cost</th>{% endif %}
                                     <th class="px-6 py-4">Status</th>
                                 </tr>
                             </thead>
@@ -77,7 +79,7 @@
                                             {{ batch.expiry_date|date:"M d, Y" }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 font-mono text-slate-500 text-xs">SDG {{ batch.purchase_price|floatformat:0|intcomma }}</td>
+                                    {% if user.is_admin %}<td class="px-6 py-4 font-mono text-slate-500 text-xs">SDG {{ batch.purchase_price|floatformat:0|intcomma }}</td>{% endif %}
                                     <td class="px-6 py-4">
                                         {% if batch.quantity == 0 %}
                                         <span

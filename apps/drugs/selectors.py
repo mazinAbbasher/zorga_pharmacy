@@ -12,6 +12,11 @@ from django.utils import timezone
 
 from .models import Drug, Batch
 
+# Single window used everywhere we say "expiring soon" (dashboard card,
+# inventory card, and the Drugs & Stock expiry filter) so the number a user
+# sees always matches the list they get when they click through to filter.
+EXPIRING_SOON_DAYS = 90
+
 
 def restock_needed_drugs(today=None):
     """Drugs that need restocking: sellable (non-expired) stock at or below the
@@ -30,7 +35,7 @@ def restock_needed_drugs(today=None):
     )
 
 
-def expiring_soon_batches(days=30, today=None):
+def expiring_soon_batches(days=EXPIRING_SOON_DAYS, today=None):
     """Batches with stock that expire within ``days`` (and aren't already expired)."""
     today = today or timezone.now().date()
     return Batch.objects.filter(
@@ -40,6 +45,6 @@ def expiring_soon_batches(days=30, today=None):
     )
 
 
-def expiring_soon_count(days=30, today=None):
+def expiring_soon_count(days=EXPIRING_SOON_DAYS, today=None):
     """Number of distinct drugs with at least one batch expiring soon."""
     return expiring_soon_batches(days=days, today=today).values('drug').distinct().count()

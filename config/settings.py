@@ -212,7 +212,8 @@ MEDIA_ROOT = DATA_DIR / 'media'
 
 AUTH_USER_MODEL = 'users.User'
 
-LOGIN_REDIRECT_URL = 'dashboard:index'
+# Land on the role-aware home view (admins -> dashboard, pharmacists -> POS).
+LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 

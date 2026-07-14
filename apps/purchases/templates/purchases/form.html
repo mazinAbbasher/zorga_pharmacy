@@ -144,6 +144,123 @@
         }
     }
 
+    // Turn a native drug <select> into a searchable dropdown. The real <select>
+    // stays in the DOM (hidden) so the formset still submits normally and the
+    // FEFO/FIFO change handler keeps working — we just dispatch its change event.
+    function enhanceDrugSelect(select) {
+        if (!select || select.dataset.enhanced === '1') return;
+        select.dataset.enhanced = '1';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'ss-wrap relative';
+        select.parentNode.insertBefore(wrap, select);
+        wrap.appendChild(select);
+        select.classList.add('hidden');
+        select.setAttribute('tabindex', '-1');
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ss-trigger w-full flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm text-left focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500 transition-all';
+        btn.innerHTML = '<span class="ss-label truncate"></span><i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 shrink-0"></i>';
+        wrap.appendChild(btn);
+        const label = btn.querySelector('.ss-label');
+
+        const panel = document.createElement('div');
+        panel.className = 'ss-panel hidden bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden';
+        panel.style.position = 'fixed';
+        panel.style.zIndex = '90';
+        panel.innerHTML =
+            '<div class="p-2 border-b border-slate-100">' +
+            '<input type="text" class="ss-search w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500/20 focus:border-accent-500" placeholder="Search drug…" autocomplete="off"></div>' +
+            '<ul class="ss-list max-h-56 overflow-y-auto py-1 text-sm"></ul>';
+        document.body.appendChild(panel);
+        const search = panel.querySelector('.ss-search');
+        const listEl = panel.querySelector('.ss-list');
+
+        const options = Array.from(select.options).map(o => ({ value: o.value, text: o.text }));
+
+        function syncLabel() {
+            const opt = select.options[select.selectedIndex];
+            if (!select.value) {
+                label.textContent = 'Select drug…';
+                label.classList.add('text-slate-400');
+            } else {
+                label.textContent = opt ? opt.text : '';
+                label.classList.remove('text-slate-400');
+            }
+        }
+
+        function renderList(filter) {
+            const f = (filter || '').toLowerCase();
+            listEl.innerHTML = '';
+            options.forEach(opt => {
+                if (!opt.value) return;                 // skip empty placeholder
+                if (f && opt.text.toLowerCase().indexOf(f) === -1) return;
+                const li = document.createElement('li');
+                li.className = 'ss-item px-3 py-2 cursor-pointer hover:bg-accent-50 hover:text-accent-700 ' +
+                    (opt.value === select.value ? 'bg-accent-50 text-accent-700 font-semibold' : 'text-slate-700');
+                li.textContent = opt.text;
+                li.dataset.value = opt.value;
+                listEl.appendChild(li);
+            });
+            if (!listEl.children.length) {
+                listEl.innerHTML = '<li class="px-3 py-3 text-slate-400 text-center">No matches</li>';
+            }
+        }
+
+        function position() {
+            const r = btn.getBoundingClientRect();
+            panel.style.top = (r.bottom + 4) + 'px';
+            panel.style.left = r.left + 'px';
+            panel.style.width = Math.max(r.width, 240) + 'px';
+        }
+        function open() {
+            position();
+            panel.classList.remove('hidden');
+            search.value = '';
+            renderList('');
+            setTimeout(() => search.focus(), 0);
+        }
+        function close() { panel.classList.add('hidden'); }
+
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            panel.classList.contains('hidden') ? open() : close();
+        });
+        search.addEventListener('input', () => renderList(search.value));
+        search.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); const f = listEl.querySelector('.ss-item'); if (f) choose(f.dataset.value); }
+            else if (e.key === 'Escape') { close(); btn.focus(); }
+        });
+        listEl.addEventListener('click', (e) => {
+            const item = e.target.closest('.ss-item');
+            if (item && item.dataset.value !== undefined) choose(item.dataset.value);
+        });
+        function choose(v) {
+            select.value = v;
+            syncLabel();
+            close();
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!wrap.contains(e.target) && !panel.contains(e.target)) close();
+        });
+        const mainScroll = document.getElementById('main-content');
+        if (mainScroll) mainScroll.addEventListener('scroll', close, { passive: true });
+        window.addEventListener('resize', close);
+
+        syncLabel();
+    }
+
+    function enhanceDrugSelects(root) {
+        const selects = root
+            ? root.querySelectorAll('select[name$="-drug"]')
+            : document.querySelectorAll('#line-rows select[name$="-drug"]');
+        selects.forEach(enhanceDrugSelect);
+        if (window.lucide) lucide.createIcons();
+    }
+
     function recalcTotals() {
         let grand = 0;
         document.querySelectorAll('#line-rows .purchase-line').forEach((row) => {
@@ -167,7 +284,7 @@
         document.getElementById('line-rows').insertAdjacentHTML('beforeend', html);
         totalForms.value = idx + 1;
         const newRow = document.querySelector('#line-rows .purchase-line:last-child');
-        if (newRow) applyStrategy(newRow);
+        if (newRow) { applyStrategy(newRow); enhanceDrugSelects(newRow); }
         if (window.lucide) lucide.createIcons();
     }
 
@@ -203,6 +320,7 @@
 
     function initLines() {
         document.querySelectorAll('#line-rows .purchase-line').forEach(applyStrategy);
+        enhanceDrugSelects();
         recalcTotals();
     }
     document.addEventListener('DOMContentLoaded', initLines);
