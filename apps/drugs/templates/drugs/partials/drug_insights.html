@@ -13,6 +13,10 @@
                         <span class="text-slate-500 font-medium">Expired Units</span>
                         <span class="font-black text-red-500">{{ drug.expired_quantity }}</span>
                     </div>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-slate-500 font-medium">Total Sold</span>
+                        <span class="font-black text-slate-900">{{ total_sold|intcomma }}</span>
+                    </div>
                     {% if user.is_admin %}
                     <div class="h-px bg-slate-50"></div>
                     <div class="flex justify-between items-center text-sm">

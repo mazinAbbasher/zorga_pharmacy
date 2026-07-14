@@ -15,19 +15,29 @@ def list(request):
     if transaction_type == 'purchases' and request.user.is_admin():
         transactions = Purchase.objects.all().order_by('-created_at')
         if query:
+            # Search by invoice, supplier, or by any drug contained in the
+            # purchase (trade or scientific name). The item join can match a
+            # purchase more than once, so distinct() collapses the duplicates.
             transactions = transactions.filter(
                 Q(invoice_number__icontains=query) |
-                Q(supplier__name__icontains=query)
-            )
+                Q(supplier__name__icontains=query) |
+                Q(items__drug__trade_name__icontains=query) |
+                Q(items__drug__scientific_name__icontains=query)
+            ).distinct()
         template = 'transactions/purchase_list.html'
     else:
         transaction_type = 'sales'
         transactions = Sale.objects.all().order_by('-timestamp')
         if query:
+            # Search by sale ID, customer, or by any drug sold in the sale
+            # (trade or scientific name). The item join can match a sale more
+            # than once, so distinct() collapses the duplicates.
             transactions = transactions.filter(
                 Q(id__icontains=query) |
-                Q(customer__name__icontains=query)
-            )
+                Q(customer__name__icontains=query) |
+                Q(items__drug__trade_name__icontains=query) |
+                Q(items__drug__scientific_name__icontains=query)
+            ).distinct()
         template = 'transactions/sale_list.html'
 
     if request.headers.get('HX-Request') and not request.headers.get('HX-Target') == 'modal-content':

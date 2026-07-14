@@ -32,7 +32,7 @@
                 <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
                 <input type="text" name="q" value="{{ query }}" hx-get="{% url 'transactions:list' %}"
                     hx-trigger="keyup changed delay:500ms" hx-target="#transaction-table-body"
-                    hx-include="[name='type']" placeholder="Search by ID, Customer, or Invoice..."
+                    hx-include="[name='type']" placeholder="Search by ID, Customer, or Item..."
                     class="w-full pl-12 pr-6 py-4 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-accent-500/10 focus:border-accent-500 transition-all shadow-sm">
                 <input type="hidden" name="type" value="{{ type }}">
             </div>

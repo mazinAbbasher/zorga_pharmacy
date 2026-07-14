@@ -139,12 +139,22 @@ def stock_insights(request, pk):
     soon = today + timedelta(days=90)
     
     from inventory.models import StockMovement
+    from django.db.models import Sum
     movements = StockMovement.objects.filter(drug=drug).order_by('-timestamp')[:5]
-    
+
+    # Lifetime units sold: every sale logs an OUT movement (quantity stored as a
+    # positive magnitude), so summing them gives the total quantity ever sold.
+    total_sold = (
+        StockMovement.objects
+        .filter(drug=drug, movement_type='OUT')
+        .aggregate(total=Sum('quantity'))['total'] or 0
+    )
+
     return render(request, 'drugs/partials/drug_insights.html', {
         'drug': drug,
         'batches': batches,
         'movements': movements,
+        'total_sold': total_sold,
         'today': today,
         'soon': soon
     })
