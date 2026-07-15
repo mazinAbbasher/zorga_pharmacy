@@ -78,11 +78,11 @@
     </td>
     <td class="px-8 py-6 text-right">
         <div class="flex items-center justify-end space-x-2">
-            <button hx-get="{% url 'drugs:stock_insights' drug.pk %}" hx-target="#insights-row-{{ drug.pk }}"
-                hx-swap="innerHTML" onclick="toggleInsights('{{ drug.pk }}')"
-                class="p-2.5 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-xl transition-all group/btn">
+            <a href="{% url 'drugs:stock_movements' drug.pk %}"
+                class="p-2.5 text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-xl transition-all group/btn"
+                title="View stock movement">
                 <i data-lucide="layout-list" class="w-5 h-5 group-hover/btn:scale-110 transition-transform"></i>
-            </button>
+            </a>
             <div class="h-8 w-px bg-slate-100"></div>
             <button hx-get="{% url 'drugs:update' drug.pk %}" hx-target="#modal-content"
                 class="p-2.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
@@ -92,17 +92,6 @@
                 class="p-2.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
                 <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
-        </div>
-    </td>
-</tr>
-<!-- Expandable Insights Row -->
-<tr id="insights-container-{{ drug.pk }}" class="hidden overflow-hidden bg-slate-50/30">
-    <td colspan="6" class="p-0">
-        <div id="insights-row-{{ drug.pk }}" class="p-8 border-x-4 border-accent-600/20">
-            <!-- Loading State -->
-            <div class="flex items-center justify-center py-10">
-                <div class="animate-spin h-8 w-8 border-4 border-accent-600 border-t-transparent rounded-full"></div>
-            </div>
         </div>
     </td>
 </tr>
@@ -120,22 +109,3 @@
     </td>
 </tr>
 {% endfor %}
-
-<script>
-    function toggleInsights(id) {
-        const container = document.getElementById(`insights-container-${id}`);
-        const allContainers = document.querySelectorAll('[id^="insights-container-"]');
-
-        // Hide others
-        allContainers.forEach(c => {
-            if (c.id !== `insights-container-${id}`) c.classList.add('hidden');
-        });
-
-        container.classList.toggle('hidden');
-
-        // Re-init Lucide icons in the newly loaded content
-        if (!container.classList.contains('hidden')) {
-            setTimeout(() => lucide.createIcons(), 100);
-        }
-    }
-</script>

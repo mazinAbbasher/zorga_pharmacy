@@ -1,0 +1,56 @@
+<div class="p-8">
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-2xl font-black text-slate-800">Adjust Stock</h3>
+        <button onclick="closeModal()"
+            class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+    <p class="text-sm font-medium text-slate-400 mb-6">{{ drug.trade_name }}</p>
+
+    <div class="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 mb-6">
+        <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Current on-hand</span>
+        <span class="text-2xl font-black text-slate-900">{{ drug.total_quantity }}
+            <span class="text-xs font-bold text-slate-400 uppercase">units</span></span>
+    </div>
+
+    <form hx-post="{% url 'inventory:adjust_stock' drug.pk %}" hx-target="#modal-content" class="space-y-6">
+        {% csrf_token %}
+
+        <div class="space-y-2">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Counted quantity</label>
+            {{ form.counted_quantity }}
+            <p class="text-[10px] text-slate-400 pl-2">The difference from current stock is logged as an adjustment.</p>
+            {% if form.counted_quantity.errors %}
+            <p class="text-xs font-bold text-red-500 pl-2">{{ form.counted_quantity.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <div class="space-y-2">
+            <label class="text-xs font-black text-slate-400 uppercase tracking-widest pl-2">Reason</label>
+            {{ form.reason }}
+            {% if form.reason.errors %}
+            <p class="text-xs font-bold text-red-500 pl-2">{{ form.reason.errors.0 }}</p>
+            {% endif %}
+        </div>
+
+        <div class="flex items-center justify-end space-x-3 pt-6 border-t border-slate-100">
+            <button type="button" onclick="closeModal()"
+                class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all">
+                Cancel
+            </button>
+            <button type="submit"
+                class="px-8 py-3 bg-accent-600 hover:bg-accent-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-accent-600/20 active:scale-95">
+                Apply Adjustment
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    lucide.createIcons();
+    setTimeout(() => {
+        const input = document.querySelector('#modal-content input[name="counted_quantity"]');
+        if (input) input.focus();
+    }, 100);
+</script>

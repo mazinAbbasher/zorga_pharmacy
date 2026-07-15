@@ -272,26 +272,31 @@ def refund_invoice(request, sale_id):
         
     if request.method == 'POST':
         for item in sale.items.all():
-            drug = item.drug
-            # Restore to the latest batch (even if expired, to prevent stock loss)
-            latest_batch = drug.batches.all().order_by('-created_at').first()
-            if latest_batch:
-                latest_batch.quantity += item.quantity
-                latest_batch.save()
-            
+            # Only restore what hasn't already been returned via partial returns,
+            # so a full refund after a partial return can't double-restock.
+            qty = item.returnable_quantity
+            if qty == 0:
+                continue
+
+            # Reuse the shared helper: adds to the newest batch, or opens a fresh
+            # one when the drug has no batches (never a phantom ledger entry).
+            _restore_stock(item.drug, qty, item.unit_price, item.unit_cost)
+            item.returned_quantity += qty
+            item.save()
+
             StockMovement.objects.create(
-                drug=drug,
+                drug=item.drug,
                 movement_type='RETURN',
-                quantity=item.quantity,
+                quantity=qty,
                 reference_id=f"REF-{sale.id}",
                 user=request.user,
                 notes=f"Refunded Sale #{sale.id}"
             )
-        
+
         sale.is_refunded = True
         sale.refund_timestamp = timezone.now()
         sale.save()
-            
+
         messages.success(request, f"Sale #{sale_id} refunded and stock restored.")
         return redirect('dashboard:index')
     

@@ -133,3 +133,44 @@ class BulkPriceUpdateForm(forms.Form):
             batches = batches.filter(drug_id__in=drug_ids)
 
         return batches
+
+
+class StockAdjustmentForm(forms.Form):
+    """Manual stock-take / correction for a single drug.
+
+    The user enters the physically *counted* on-hand quantity and a reason;
+    ``inventory.services.adjust_stock`` turns the difference from current stock
+    into a signed ADJUSTMENT movement.
+    """
+
+    _WIDGET_CLASS = (
+        'block w-full px-4 py-3 bg-slate-50 border border-slate-200 '
+        'rounded-[1.25rem] text-sm font-medium focus:ring-4 '
+        'focus:ring-accent-500/10 focus:border-accent-600 transition-all'
+    )
+
+    counted_quantity = forms.IntegerField(
+        min_value=0,
+        label='Counted quantity',
+        help_text='The actual number of units physically on the shelf.',
+        widget=forms.NumberInput(attrs={'min': 0}),
+    )
+    reason = forms.CharField(
+        label='Reason',
+        max_length=255,
+        widget=forms.Textarea(attrs={
+            'rows': 2,
+            'placeholder': 'e.g. Stock-take correction, breakage, damaged units…',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.setdefault('class', self._WIDGET_CLASS)
+
+    def clean_reason(self):
+        reason = self.cleaned_data['reason'].strip()
+        if not reason:
+            raise forms.ValidationError('Give a reason for the adjustment.')
+        return reason

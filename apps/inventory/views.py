@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
@@ -6,14 +6,16 @@ from django.db.models import (
     F, Value, DecimalField, ExpressionWrapper,
 )
 from django.db.models.functions import Round, Greatest
+from django.http import HttpResponse
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal, ROUND_HALF_UP
 
 from drugs.models import Drug, Batch
 from drugs.selectors import restock_needed_drugs, expiring_soon_count, EXPIRING_SOON_DAYS
+from . import services
 from .models import StockMovement
-from .forms import BulkPriceUpdateForm
+from .forms import BulkPriceUpdateForm, StockAdjustmentForm
 
 from core.decorators import pharmacist_or_admin, admin_only
 
@@ -51,6 +53,57 @@ def index(request):
 def movement_logs(request):
     logs = StockMovement.objects.all().order_by('-timestamp')[:100]
     return render(request, 'inventory/logs.html', {'logs': logs})
+
+
+# ---------------------------------------------------------------------------
+# Manual stock corrections (admin) — activate ADJUSTMENT / EXPIRED movements.
+# Both follow the HTMX modal pattern: GET renders the modal, POST applies the
+# change via inventory.services and refreshes the page (HX-Refresh) so the
+# per-drug ledger and tiles re-render with the new movement.
+# ---------------------------------------------------------------------------
+
+def _hx_refresh():
+    response = HttpResponse()
+    response['HX-Refresh'] = 'true'
+    return response
+
+
+@login_required
+@admin_only
+def adjust_stock(request, drug_pk):
+    drug = get_object_or_404(Drug, pk=drug_pk)
+    if request.method == 'POST':
+        form = StockAdjustmentForm(request.POST)
+        if form.is_valid():
+            delta = services.adjust_stock(
+                drug,
+                form.cleaned_data['counted_quantity'],
+                request.user,
+                form.cleaned_data['reason'],
+            )
+            if delta == 0:
+                messages.info(request, f"{drug.trade_name}: counted quantity matched stock — no change made.")
+            else:
+                verb = 'increased' if delta > 0 else 'reduced'
+                messages.success(request, f"{drug.trade_name} stock {verb} by {abs(delta)} unit(s).")
+            return _hx_refresh()
+    else:
+        form = StockAdjustmentForm()
+    return render(request, 'inventory/partials/adjust_stock_modal.html', {'form': form, 'drug': drug})
+
+
+@login_required
+@admin_only
+def write_off_expired(request, drug_pk):
+    drug = get_object_or_404(Drug, pk=drug_pk)
+    if request.method == 'POST':
+        written = services.write_off_expired(drug, request.user)
+        if written:
+            messages.success(request, f"Wrote off {written} expired unit(s) of {drug.trade_name}.")
+        else:
+            messages.info(request, f"{drug.trade_name}: no expired stock to write off.")
+        return _hx_refresh()
+    return render(request, 'inventory/partials/write_off_expired_modal.html', {'drug': drug})
 
 
 # ---------------------------------------------------------------------------

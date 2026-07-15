@@ -1,0 +1,50 @@
+<div class="p-8">
+    <div class="flex items-center justify-between mb-2">
+        <h3 class="text-2xl font-black text-slate-800">Write Off Expired</h3>
+        <button onclick="closeModal()"
+            class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+    </div>
+    <p class="text-sm font-medium text-slate-400 mb-6">{{ drug.trade_name }}</p>
+
+    {% with expired=drug.expired_quantity %}
+    {% if expired > 0 %}
+    <div class="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 mb-6 flex items-start space-x-3">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 mt-0.5"></i>
+        <div>
+            <p class="text-sm font-bold text-red-700">{{ expired }} expired unit(s) will be removed from stock.</p>
+            <p class="text-xs font-medium text-red-500/80 mt-1">This logs an <span class="font-black">Expired / Loss</span>
+                movement and clears the expired batches. It cannot be undone.</p>
+        </div>
+    </div>
+
+    <form hx-post="{% url 'inventory:write_off_expired' drug.pk %}" hx-target="#modal-content" class="space-y-6">
+        {% csrf_token %}
+        <div class="flex items-center justify-end space-x-3 pt-2">
+            <button type="button" onclick="closeModal()"
+                class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all">
+                Cancel
+            </button>
+            <button type="submit"
+                class="px-8 py-3 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-red-600/20 active:scale-95">
+                Write Off {{ expired }} Unit(s)
+            </button>
+        </div>
+    </form>
+    {% else %}
+    <div class="bg-slate-50 border border-slate-100 rounded-2xl px-5 py-6 text-center">
+        <i data-lucide="check-circle" class="w-8 h-8 text-green-500 mx-auto mb-3"></i>
+        <p class="text-sm font-bold text-slate-600">No expired stock for this product.</p>
+    </div>
+    <div class="flex items-center justify-end pt-6">
+        <button type="button" onclick="closeModal()"
+            class="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm font-bold rounded-xl transition-all">
+            Close
+        </button>
+    </div>
+    {% endif %}
+    {% endwith %}
+</div>
+
+<script>lucide.createIcons();</script>

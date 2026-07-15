@@ -57,6 +57,27 @@ class SaleReturnTests(TestCase):
         item = sale.items.first(); item.refresh_from_db()
         self.assertEqual(item.returned_quantity, 2)  # capped at sold qty
 
+    def test_full_refund_after_partial_return_does_not_double_restore(self):
+        # 4 sold from a batch now holding 6.
+        self.batch.quantity = 6
+        self.batch.save()
+        sale = self._sale(qty=4)
+        item = sale.items.first()
+
+        # Return 2 first (6 -> 8).
+        self.client.post(f"/pos/return/{sale.id}/", {f"return_qty_{item.id}": "2"})
+        self.drug.refresh_from_db()
+        self.assertEqual(self.drug.total_quantity, 8)
+
+        # Full refund must restore only the remaining 2 (8 -> 10), not the full 4.
+        self.client.post(f"/pos/refund/{sale.id}/")
+        self.drug.refresh_from_db()
+        self.assertEqual(self.drug.total_quantity, 10)
+        item.refresh_from_db()
+        self.assertEqual(item.returned_quantity, 4)
+        sale.refresh_from_db()
+        self.assertTrue(sale.is_refunded)
+
     def test_credit_sale_return_reduces_customer_balance(self):
         cust = Customer.objects.create(name="Ali")
         sale = self._sale(qty=4, customer=cust, method="CREDIT")

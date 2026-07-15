@@ -5,7 +5,7 @@ app_name = 'drugs'
 
 urlpatterns = [
     path('', views.list, name='list'),
-    path('insights/<int:pk>/', views.stock_insights, name='stock_insights'),
+    path('<int:pk>/movements/', views.stock_movements, name='stock_movements'),
     path('add/', views.create, name='create'),
     path('edit/<int:pk>/', views.update, name='update'),
     path('delete/<int:pk>/', views.delete, name='delete'),

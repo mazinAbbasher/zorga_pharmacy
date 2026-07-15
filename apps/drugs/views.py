@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
 from django.db.models import Q, F, Sum, Value, Exists, OuterRef, DecimalField
 from django.db.models.functions import Coalesce
 from .models import Drug, Category, Manufacturer, Batch
@@ -10,7 +11,7 @@ from core.decorators import pharmacist_or_admin
 from django.http import HttpResponse
 
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal
 
 def _render_drug_list_response(request, success_msg=None):
@@ -131,32 +132,118 @@ def list(request):
     }
     return render(request, 'drugs/index.html', context)
 
+def _attach_reference(movement):
+    """Tag a movement with the transaction it links to, if any.
+
+    Sets ``ref_kind`` ('sale' | 'purchase' | None) and ``ref_pk`` from the
+    reference id prefix so the template can deep-link to the sale/purchase
+    detail modal. ADJUSTMENT/EXPIRED (ADJ-/EXP-) carry no external link.
+    """
+    ref = movement.reference_id or ''
+    movement.ref_kind = None
+    movement.ref_pk = None
+    for prefix, kind in (
+        ('RET-SALE-', 'sale'), ('RET-PUR-', 'purchase'),
+        ('REF-', 'sale'), ('SALE-', 'sale'), ('PUR-', 'purchase'),
+    ):
+        if ref.startswith(prefix):
+            digits = ref[len(prefix):].split('-')[0]
+            if digits.isdigit():
+                movement.ref_kind = kind
+                movement.ref_pk = int(digits)
+            break
+
+
+def _parse_date(value):
+    try:
+        return datetime.strptime(value, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
+
+
 @login_required
-def stock_insights(request, pk):
-    drug = get_object_or_404(Drug, pk=pk)
-    batches = drug.batches.all().order_by('expiry_date')
-    today = timezone.now().date()
-    soon = today + timedelta(days=90)
-    
-    from inventory.models import StockMovement
-    from django.db.models import Sum
-    movements = StockMovement.objects.filter(drug=drug).order_by('-timestamp')[:5]
-
-    # Lifetime units sold: every sale logs an OUT movement (quantity stored as a
-    # positive magnitude), so summing them gives the total quantity ever sold.
-    total_sold = (
-        StockMovement.objects
-        .filter(drug=drug, movement_type='OUT')
-        .aggregate(total=Sum('quantity'))['total'] or 0
+def stock_movements(request, pk):
+    """Full per-drug stock ledger: batches, every movement with a running
+    balance, a reconciliation check, and summary totals."""
+    drug = get_object_or_404(
+        Drug.objects.select_related('category', 'manufacturer'), pk=pk
     )
+    today = timezone.now().date()
+    soon = today + timedelta(days=EXPIRING_SOON_DAYS)
 
-    return render(request, 'drugs/partials/drug_insights.html', {
+    from inventory.models import StockMovement
+
+    # NB: this module defines a view named ``list`` that shadows the builtin, so
+    # materialise querysets with unpacking rather than ``list(...)``.
+    batches = [*drug.batches.all().order_by('expiry_date', 'created_at')]
+
+    # Whole ledger, newest-first (StockMovement Meta ordering), users prefetched.
+    all_moves = [*drug.movements.select_related('user').all()]
+
+    # Raw on-hand across *all* batches (incl. expired) is what the ledger must
+    # reconcile to. Walk newest->oldest peeling off each signed movement so each
+    # row shows the balance immediately after that event.
+    raw_on_hand = sum(b.quantity for b in batches)
+    running = raw_on_hand
+    for m in all_moves:
+        m.balance_after = running
+        running -= m.signed_quantity
+        _attach_reference(m)
+    # A complete ledger opens at 0; a non-zero opening means stock changed
+    # outside the ledger (e.g. a direct DB/admin edit) — surfaced as a warning.
+    opening_balance = running
+    reconciled = opening_balance == 0
+
+    # Summary by direction, computed from the already-loaded list (no re-query).
+    def _total(mtype):
+        return sum(m.quantity for m in all_moves if m.movement_type == mtype)
+    supplier_returns = sum(
+        m.quantity for m in all_moves
+        if m.movement_type == 'RETURN' and (m.reference_id or '').startswith('RET-PUR-')
+    )
+    summary = {
+        'received': _total('IN'),
+        'dispensed': _total('OUT'),
+        'written_off': _total('EXPIRED'),
+        'adjustments': _total('ADJUSTMENT'),  # signed net
+        'supplier_returns': supplier_returns,
+        'customer_returns': _total('RETURN') - supplier_returns,
+    }
+
+    # Display filters (applied after balances are computed so each row's
+    # balance_after stays absolute regardless of the current filter).
+    mtype = request.GET.get('type', '')
+    date_from = request.GET.get('from', '')
+    date_to = request.GET.get('to', '')
+    df, dt = _parse_date(date_from), _parse_date(date_to)
+
+    filtered = all_moves
+    if mtype:
+        filtered = [m for m in filtered if m.movement_type == mtype]
+    if df:
+        filtered = [m for m in filtered if timezone.localtime(m.timestamp).date() >= df]
+    if dt:
+        filtered = [m for m in filtered if timezone.localtime(m.timestamp).date() <= dt]
+
+    paginator = Paginator(filtered, 50)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'drugs/stock_movements.html', {
         'drug': drug,
         'batches': batches,
-        'movements': movements,
-        'total_sold': total_sold,
+        'page_obj': page_obj,
+        'movements': page_obj.object_list,
+        'total_movements': len(filtered),
+        'summary': summary,
+        'raw_on_hand': raw_on_hand,
+        'opening_balance': opening_balance,
+        'reconciled': reconciled,
+        'movement_types': StockMovement.MOVEMENT_TYPES,
+        'selected_type': mtype,
+        'date_from': date_from,
+        'date_to': date_to,
         'today': today,
-        'soon': soon
+        'soon': soon,
     })
 
 @login_required
