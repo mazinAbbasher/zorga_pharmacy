@@ -127,6 +127,30 @@ $env:DJANGO_SETTINGS_MODULE = "config.settings"
 & $venvPy manage.py collectstatic --noinput
 Assert-LastExit "collectstatic"
 
+# A previous build (or a client) may still have the app open. Its native window
+# loads ClrLoader.dll (pywebview/pythonnet), which locks that file -- and then
+# PyInstaller's COLLECT step, which deletes and recreates dist\PharmacySystem,
+# dies partway through with "Access is denied" and leaves a half-deleted,
+# corrupt build folder. Close the app and clear the old output up front so the
+# build starts from a clean, unlocked state.
+Write-Host "==> Closing any running app so its files aren't locked..." -ForegroundColor Cyan
+Get-Process -Name "PharmacySystem" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+$distDir = Join-Path $PSScriptRoot "dist\PharmacySystem"
+if (Test-Path $distDir) {
+    Write-Host "==> Removing previous build output..." -ForegroundColor Cyan
+    $removed = $false
+    for ($i = 0; $i -lt 5; $i++) {
+        try { Remove-Item -Recurse -Force $distDir -ErrorAction Stop; $removed = $true; break }
+        catch { Start-Sleep -Seconds 2 }  # a file handle may still be closing
+    }
+    if (-not $removed) {
+        throw ("Could not delete '$distDir' - it looks like the app is still open. " +
+               "Close Pharmacy System (check Task Manager for PharmacySystem.exe) and any " +
+               "Explorer window showing that folder, then run this script again.")
+    }
+}
+
 Write-Host "==> Building executable with PyInstaller..." -ForegroundColor Cyan
 & $venvPy -m PyInstaller --noconfirm desktop.spec
 Assert-LastExit "PyInstaller build"
