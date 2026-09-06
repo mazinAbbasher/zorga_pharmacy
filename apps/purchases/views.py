@@ -4,6 +4,7 @@ from .models import Purchase, PurchaseItem
 from .forms import PurchaseForm, PurchaseItemFormSet
 from django.contrib import messages
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.template.defaultfilters import floatformat
 from decimal import Decimal
@@ -14,8 +15,23 @@ from inventory.models import StockMovement
 @login_required
 @admin_only
 def list(request):
+    query = request.GET.get('q', '')
     purchases = Purchase.objects.all().order_by('-created_at')
-    return render(request, 'purchases/index.html', {'purchases': purchases})
+    if query:
+        # Search by invoice, supplier, or by any drug contained in the
+        # purchase (trade or scientific name). The item join can match a
+        # purchase more than once, so distinct() collapses the duplicates.
+        purchases = purchases.filter(
+            Q(invoice_number__icontains=query) |
+            Q(supplier__name__icontains=query) |
+            Q(items__drug__trade_name__icontains=query) |
+            Q(items__drug__scientific_name__icontains=query)
+        ).distinct()
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'purchases/partials/purchase_rows.html', {'purchases': purchases})
+
+    return render(request, 'purchases/index.html', {'purchases': purchases, 'query': query})
 
 
 def _reduce_stock(drug, qty, batch_number='', expiry_date=None):
@@ -159,4 +175,140 @@ def create(request):
         'formset': formset,
         'drug_strategies': drug_strategies,
         'title': 'New Purchase',
+        'is_edit': False,
+    })
+
+
+@login_required
+@admin_only
+@transaction.atomic
+def edit(request, pk):
+    """Edit a purchase's header (always) and product lines (only if nothing
+    on it has been returned yet).
+
+    Line items are locked once any item has a recorded return because there's
+    no reliable link from a PurchaseItem back to the exact Batch it created —
+    editing quantities on top of a return could silently corrupt stock. When
+    editing is allowed, changed/removed lines reverse their stock contribution
+    with the same safe, capped helper the supplier-return flow uses
+    (``_reduce_stock``), then a fresh batch is created for the new quantity,
+    mirroring how ``create`` always creates a new batch per line.
+    """
+    purchase = get_object_or_404(Purchase, pk=pk)
+    can_edit_items = not purchase.items.filter(returned_quantity__gt=0).exists()
+    # Snapshot pre-edit item state now, before the formset (constructed below)
+    # mutates its own in-memory copies of these rows.
+    original_items = {item.pk: item for item in purchase.items.all()}
+    old_supplier_id = purchase.supplier_id
+
+    if request.method == 'POST':
+        p_form = PurchaseForm(request.POST, instance=purchase)
+        formset = PurchaseItemFormSet(request.POST, instance=purchase, prefix='items') if can_edit_items else None
+
+        items_ok = True
+        if formset is not None:
+            if formset.is_valid():
+                remaining = [
+                    f for f in formset
+                    if f.cleaned_data and not f.cleaned_data.get('DELETE')
+                ]
+                if not remaining:
+                    items_ok = False
+                    messages.error(request, "A purchase must keep at least one product line.")
+            else:
+                items_ok = False
+
+        if p_form.is_valid() and items_ok:
+            purchase = p_form.save()
+            notices = []
+
+            if formset is not None:
+                from drugs.models import Batch
+                # Populates new_objects / changed_objects / deleted_objects
+                # without touching the DB yet.
+                formset.save(commit=False)
+
+                for obj in formset.deleted_objects:
+                    removed = _reduce_stock(obj.drug, obj.returnable_quantity, obj.batch_number, obj.expiry_date)
+                    if removed:
+                        StockMovement.objects.create(
+                            drug=obj.drug, movement_type='ADJUSTMENT', quantity=-removed,
+                            reference_id=f"PUR-{purchase.id}", user=request.user,
+                            notes=f"Line removed while editing purchase (Invoice #{purchase.invoice_number})",
+                        )
+                    if removed < obj.returnable_quantity:
+                        notices.append(
+                            f"{obj.drug.trade_name}: only {removed} of {obj.returnable_quantity} unit(s) were "
+                            "still in stock, so only that much could be removed."
+                        )
+                    obj.delete()
+
+                for obj, _changed_fields in formset.changed_objects:
+                    original = original_items[obj.pk]
+                    removed = _reduce_stock(
+                        original.drug, original.returnable_quantity,
+                        original.batch_number, original.expiry_date,
+                    )
+                    if removed:
+                        StockMovement.objects.create(
+                            drug=original.drug, movement_type='ADJUSTMENT', quantity=-removed,
+                            reference_id=f"PUR-{purchase.id}", user=request.user,
+                            notes=f"Line edited (Invoice #{purchase.invoice_number})",
+                        )
+                    if removed < original.returnable_quantity:
+                        notices.append(
+                            f"{original.drug.trade_name}: only {removed} of {original.returnable_quantity} "
+                            "original unit(s) were still in stock, so the adjustment reflects that."
+                        )
+                    obj.save()
+                    Batch.objects.create(
+                        drug=obj.drug, batch_number=obj.batch_number,
+                        purchase_price=obj.purchase_price, selling_price=obj.selling_price,
+                        quantity=obj.quantity, expiry_date=obj.expiry_date,
+                    )
+                    StockMovement.objects.create(
+                        drug=obj.drug, movement_type='ADJUSTMENT', quantity=obj.quantity,
+                        reference_id=f"PUR-{purchase.id}", user=request.user,
+                        notes=f"Line edited (Invoice #{purchase.invoice_number})",
+                    )
+
+                for obj in formset.new_objects:
+                    obj.save()  # created=True -> signal logs the IN movement
+                    Batch.objects.create(
+                        drug=obj.drug, batch_number=obj.batch_number,
+                        purchase_price=obj.purchase_price, selling_price=obj.selling_price,
+                        quantity=obj.quantity, expiry_date=obj.expiry_date,
+                    )
+
+                purchase.total_amount = sum(
+                    (item.total_price for item in purchase.items.all()), Decimal('0.00')
+                )
+                purchase.save()
+
+            if old_supplier_id != purchase.supplier_id:
+                from suppliers.models import Supplier
+                from core.signals import recalculate_supplier_balance
+                recalculate_supplier_balance(Supplier.objects.get(pk=old_supplier_id))
+
+            for notice in notices:
+                messages.warning(request, notice)
+            messages.success(request, "Purchase updated.")
+            return redirect('purchases:list')
+    else:
+        p_form = PurchaseForm(instance=purchase)
+        formset = PurchaseItemFormSet(instance=purchase, prefix='items') if can_edit_items else None
+
+    from drugs.models import Drug
+    drug_strategies = {
+        str(pk): strat for pk, strat in Drug.objects.values_list('id', 'dispensing_strategy')
+    }
+
+    return render(request, 'purchases/form.html', {
+        'p_form': p_form,
+        'formset': formset,
+        'purchase': purchase,
+        'drug_strategies': drug_strategies,
+        'title': 'Edit Purchase',
+        'is_edit': True,
+        'can_edit_items': can_edit_items,
     })

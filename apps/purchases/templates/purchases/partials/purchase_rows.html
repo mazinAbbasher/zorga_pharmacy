@@ -1,0 +1,67 @@
+{% for purchase in purchases %}
+<tr class="group hover:bg-slate-50/50 transition-all duration-200">
+    <td class="px-10 py-6">
+        <div class="flex items-center space-x-4">
+            <div
+                class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-accent-50 group-hover:text-accent-600 transition-colors shadow-sm">
+                <i data-lucide="file-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="font-bold text-slate-900 group-hover:text-accent-600 transition-colors">
+                    #INV-{{ purchase.invoice_number }}</div>
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">{{                     purchase.purchase_date|date:"D, M d, Y" }}</div>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-6">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="building" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-sm font-bold text-slate-800">{{ purchase.supplier.name }}</span>
+        </div>
+    </td>
+    <td class="px-6 py-6">
+        <div class="flex flex-col">
+            <span class="text-lg font-black text-slate-900">SDG {{                   purchase.total_amount|floatformat:0|intcomma }}</span>
+            <span class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Gross
+                Payable</span>
+        </div>
+    </td>
+    <td class="px-6 py-6">
+        <div class="max-w-xs space-y-1">
+            {% for item in purchase.items.all %}
+            <div class="flex items-center justify-between text-[11px] font-medium text-slate-500">
+                <span>{{ item.drug.trade_name }}</span>
+                <span class="font-bold text-slate-700">x{{ item.quantity }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </td>
+    <td class="px-10 py-6 text-right">
+        <div class="flex items-center justify-end gap-2">
+            <span
+                class="inline-flex items-center px-4 py-1.5 bg-green-50 text-green-700 rounded-xl text-[10px] font-black uppercase tracking-widest border border-green-100">
+                <i data-lucide="check-circle-2" class="w-3.5 h-3.5 mr-2"></i>
+                VALIDATED
+            </span>
+            <a href="{% url 'purchases:edit' purchase.id %}"
+                class="w-9 h-9 grid place-items-center text-slate-400 hover:text-accent-600 hover:bg-accent-50 rounded-xl transition-all"
+                aria-label="Edit purchase" title="Edit purchase">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="5" class="px-10 py-32 text-center text-slate-400">
+        <div class="flex flex-col items-center justify-center opacity-20">
+            <i data-lucide="clipboard-list" class="w-16 h-16 mb-4"></i>
+            <span class="text-sm font-black uppercase tracking-widest">No procurement records</span>
+        </div>
+    </td>
+</tr>
+{% endfor %}
+
+<script>
+    if (window.lucide) lucide.createIcons();
+</script>
